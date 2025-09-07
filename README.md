@@ -29,3 +29,29 @@ def test_composite_chart_instance():
 
     assert birthchart_instance.chart_type == 'Composite'
     assert template.startswith("<?xml version='1.0' encoding='UTF-8'?>")
+
+
+
+
+
+
+
+
+
+
+
+pip install fastapi uvicorn 
+
+uvicorn main:app --reload --port 8002
+
+docker build -t my-fastapi-app .
+docker run -p 80:80 my-fastapi-app
+
+docker build -t my-fastapi-app-gateway .
+docker run -p 8010:80 my-fastapi-app-gateway
+
+
+
+pip install fastapi uvicorn httpx
+
+uvicorn gateway:app --reload --port 8010

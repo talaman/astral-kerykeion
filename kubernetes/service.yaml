@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: astral-kerykeion-service
+    annotations:
+        service.beta.kubernetes.io/vultr-loadbalancer-protocol: "http"
+spec:
+    type: ClusterIP  # Changed from LoadBalancer to ClusterIP
+    selector:
+        name: astral-kerykeion
+    ports:
+        - name: http
+          port: 80
+          targetPort: 80
