@@ -23,7 +23,7 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/v1/api/chart", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/v1/api/gen", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_chart(
     name: str = Query(..., description="Name of the subject", example="Ada Lovelace"),
     year: int = Query(..., description="Year of birth", example=1815),
