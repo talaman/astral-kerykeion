@@ -34,11 +34,17 @@ async def get_chart(
     city: str = Query(..., description="City of birth", example="London"),
     lng: float = Query(..., description="Longitude of birth location", example=-0.1278),
     lat: float = Query(..., description="Latitude of birth location", example=51.5074),
-    tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London")
+    tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
+    svg: bool = Query(False, description="Return SVG image if true, else return JSON")
+
 ):
     import os
-    output_dir = "./output"
-    os.makedirs(output_dir, exist_ok=True)
+    import uuid
+    import shutil
+    from glob import glob
+
+    base_output_dir = "./temp/output"
+    os.makedirs(base_output_dir, exist_ok=True)
     subject1 = AstrologicalSubject(
         name=name,
         year=year,
@@ -53,7 +59,42 @@ async def get_chart(
         online=False  
     )
     r = subject1.json(dump=False, indent=2)
-    return Response(content=r, media_type="application/json")
-    # birth_chart_svg = KerykeionChartSVG(subject1, new_output_directory=output_dir, chart_language="ES")
-    # svg_content = birth_chart_svg.makeSVG()
-    # return Response(content=svg_content, media_type="image/svg+xml")
+
+    if not svg:
+        return Response(content=r, media_type="application/json")
+
+    # Create a unique subfolder to capture the generated file(s)
+    temp_dir = os.path.join(base_output_dir, uuid.uuid4().hex)
+    os.makedirs(temp_dir, exist_ok=True)
+    try:
+        chart = KerykeionChartSVG(
+            subject1,
+            new_output_directory=temp_dir,
+            chart_language="ES",
+        )
+        # This writes the SVG to temp_dir and returns None
+        chart.makeSVG()
+
+        # Find the generated SVG (pick the newest if multiple exist)
+        svgs = sorted(
+            glob(os.path.join(temp_dir, "*.svg")),
+            key=lambda p: os.path.getmtime(p),
+            reverse=True,
+        )
+        if not svgs:
+            raise HTTPException(status_code=500, detail="SVG generation failed: no file created")
+
+        svg_path = svgs[0]
+        with open(svg_path, "r", encoding="utf-8") as f:
+            svg_text = f.read()
+
+        return Response(content=svg_text, media_type="image/svg+xml")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"SVG generation failed: {str(e)}")
+    finally:
+        # Always clean up the temp directory
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception:
+            # Best-effort cleanup; ignore failures
+            pass
