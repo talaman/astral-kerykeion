@@ -36,22 +36,11 @@ def test_composite_chart_instance():
 
 
 
-
-
-
-
-pip install fastapi uvicorn 
-
+cd app
+pip install -r requirements.txt
 uvicorn main:app --reload --port 8002
 
 docker build -t my-fastapi-app .
 docker run -p 80:80 my-fastapi-app
 
-docker build -t my-fastapi-app-gateway .
-docker run -p 8010:80 my-fastapi-app-gateway
 
-
-
-pip install fastapi uvicorn httpx
-
-uvicorn gateway:app --reload --port 8010

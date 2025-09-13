@@ -1,1 +1,2 @@
 *.pyc
+app/cache/kerykeion_geonames_cache.sqlite

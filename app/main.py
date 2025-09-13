@@ -71,6 +71,7 @@ async def get_chart(
             subject1,
             new_output_directory=temp_dir,
             chart_language="ES",
+            theme="light"
         )
         # This writes the SVG to temp_dir and returns None
         chart.makeSVG()
