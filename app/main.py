@@ -71,7 +71,7 @@ async def get_chart(
             subject1,
             new_output_directory=temp_dir,
             chart_language="ES",
-            theme="light"
+            theme=None
         )
         # This writes the SVG to temp_dir and returns None
         chart.makeSVG()
@@ -88,6 +88,26 @@ async def get_chart(
         svg_path = svgs[0]
         with open(svg_path, "r", encoding="utf-8") as f:
             svg_text = f.read()
+
+        # Read and embed CSS styles
+        css_path = "./themes/astral.css"
+        try:
+            with open(css_path, "r", encoding="utf-8") as f:
+                css_content = f.read()
+            
+            # Embed CSS into SVG
+            if "<svg" in svg_text and "<style>" not in svg_text:
+                # Find the first occurrence of > after <svg to insert the style tag
+                svg_start = svg_text.find("<svg")
+                if svg_start != -1:
+                    svg_tag_end = svg_text.find(">", svg_start)
+                    if svg_tag_end != -1:
+                        # Insert CSS style tag right after the opening <svg> tag
+                        style_tag = f'\n<style type="text/css">\n<![CDATA[\n{css_content}\n]]>\n</style>\n'
+                        svg_text = svg_text[:svg_tag_end + 1] + style_tag + svg_text[svg_tag_end + 1:]
+        except FileNotFoundError:
+            # If CSS file not found, proceed without styling
+            pass
 
         return Response(content=svg_text, media_type="image/svg+xml")
     except Exception as e:
