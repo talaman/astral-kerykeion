@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: astral-kerykeion
+spec:
+    replicas: 2
+    selector:
+        matchLabels:
+            name: astral-kerykeion
+    template:
+        metadata:
+            labels:
+                name: astral-kerykeion
+        spec:
+            containers:
+                - name: astral-kerykeion
+                  image: ghcr.io/talaman/astral-kerykeion:${{ github.sha }}
+                  imagePullPolicy: Always
+                  ports:
+                      - containerPort: 80
+                  resources:
+                    requests:
+                        memory: 160Mi
+                    limits:
+                        memory: 256Mi
+            imagePullSecrets:
+              - name: github-container-registry
