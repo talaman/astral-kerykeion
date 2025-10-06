@@ -114,7 +114,7 @@ jobs:
         with:
           namespace: prod
           manifests: |
-            kubernetes/deployment.yaml
+            kubernetes/deployment-prod.yaml
             kubernetes/service.yaml
           images: |
             ghcr.io/talaman/astral-kerykeion:${{ github.sha }}
