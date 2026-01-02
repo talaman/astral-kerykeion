@@ -182,6 +182,7 @@ async def get_chart(
     os.makedirs(base_output_dir, exist_ok=True)
     subject1 = AstrologicalSubjectFactory.from_birth_data(
         name, year, month, day, hour, minute, 
+        city=city,
         lng=lng,
         lat=lat,
         tz_str=tz_str,
