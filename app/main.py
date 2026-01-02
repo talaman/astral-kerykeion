@@ -140,6 +140,7 @@ async def get_chart(
     lng: float = Query(..., description="Longitude of birth location", example=-0.1278),
     lat: float = Query(..., description="Latitude of birth location", example=51.5074),
     tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
+    nation: str = Query(..., description="nation of birth", example="United Kingdom"),
     svg: bool = Query(False, description="Return SVG image if true, else return JSON")
 
 ):
@@ -160,6 +161,7 @@ async def get_chart(
         "lng": lng,
         "lat": lat,
         "tz_str": tz_str,
+        "nation": nation,
         "svg": svg
     }
     cache_key = hashlib.md5(json.dumps(cache_data, sort_keys=True).encode()).hexdigest()
@@ -181,8 +183,9 @@ async def get_chart(
     base_output_dir = "./temp/output"
     os.makedirs(base_output_dir, exist_ok=True)
     subject1 = AstrologicalSubjectFactory.from_birth_data(
-        name, year, month, day, hour, minute, 
-        city=city,
+        name, year, month, day, hour, minute,
+        city,
+        nation,
         lng=lng,
         lat=lat,
         tz_str=tz_str,

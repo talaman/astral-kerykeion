@@ -1,2 +1,3 @@
 *.pyc
 app/cache/kerykeion_geonames_cache.sqlite
+app/test.svg
