@@ -1,14 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
-from kerykeion import AstrologicalSubject, KerykeionChartSVG
+from kerykeion import AstrologicalSubject, KerykeionChartSVG, AspectsFactory, AstrologicalSubjectFactory
 from fastapi import Query
 import hashlib
 import json
 import time
 import sys
 import logging
-
-
 
 
 
@@ -182,20 +180,22 @@ async def get_chart(
 
     base_output_dir = "./temp/output"
     os.makedirs(base_output_dir, exist_ok=True)
-    subject1 = AstrologicalSubject(
-        name=name,
-        year=year,
-        month=month,
-        day=day,
-        hour=hour,
-        minute=minute,
-        city=city,
+    subject1 = AstrologicalSubjectFactory.from_birth_data(
+        name, year, month, day, hour, minute, 
         lng=lng,
         lat=lat,
         tz_str=tz_str,
-        online=False  
+        online=False
     )
-    r = subject1.json(dump=False, indent=2)
+
+    # # Calculate aspects
+    aspects_data = AspectsFactory.single_chart_aspects(subject1)
+
+    # Convert to dict and add aspects for JSON response
+    subject_dict = subject1.model_dump()
+    subject_dict["aspects"] = [aspect.model_dump() for aspect in aspects_data.aspects]
+    
+    r = json.dumps(subject_dict, indent=2)
 
     if not svg:
         logger.info(f"Cache MISS: JSON for {name} ({cache_key[:8]}...) - Generating new response")
