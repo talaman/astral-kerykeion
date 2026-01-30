@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
-from kerykeion import AstrologicalSubject, KerykeionChartSVG, AspectsFactory, AstrologicalSubjectFactory
+from kerykeion import AstrologicalSubject, KerykeionChartSVG, AspectsFactory, AstrologicalSubjectFactory, to_context
 from fastapi import Query
 import hashlib
 import json
@@ -195,9 +195,13 @@ async def get_chart(
     # # Calculate aspects
     aspects_data = AspectsFactory.single_chart_aspects(subject1)
 
-    # Convert to dict and add aspects for JSON response
+    # Calculate LLM context
+    context_text = to_context(subject1)
+    
+    # Convert to dict and add aspects and context for JSON response
     subject_dict = subject1.model_dump()
     subject_dict["aspects"] = [aspect.model_dump() for aspect in aspects_data.aspects]
+    subject_dict["context"] = context_text
     
     r = json.dumps(subject_dict, indent=2)
 
