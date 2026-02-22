@@ -42,10 +42,10 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8002
 
 Now open http://localhost:8002/docs
 
-To run the quick cache test (with the server running on port 8002):
+To run the testing suite (with the server running on port 8002):
 
 ```bat
-python ..\test_cache.py
+python -m pytest tests
 ```
 
 ### Option B — Docker
@@ -158,7 +158,7 @@ kubectl apply -f kubernetes\service.yaml
 
 - Source entry: app/main.py
 - Requirements: app/requirements.txt
-- Local testing script: test_cache.py (expects server on http://localhost:8002)
+- Local testing suite: `python -m pytest tests` (expects server on http://localhost:8002)
 - Swagger UI: /docs | ReDoc: /redoc
 
 ## Acknowledgements
