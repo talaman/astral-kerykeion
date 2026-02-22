@@ -129,6 +129,7 @@ async def update_cache_config(max_items: int = None, max_size_mb: float = None):
 
 
 @app.get("/gen", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/birth", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_chart(
     name: str = Query(..., description="Name of the subject", example="Ada Lovelace"),
     year: int = Query(..., description="Year of birth", example=1815),
@@ -294,7 +295,7 @@ async def get_chart(
             pass
 
 
-@app.get("/gen-synastry", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/synastry", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_synastry_chart(
     name1: str = Query(..., description="Name of the first subject", example="Romeo"),
     year1: int = Query(..., description="Year of birth", example=1990),
@@ -463,6 +464,173 @@ async def get_synastry_chart(
         raise HTTPException(status_code=500, detail=f"SVG generation failed: {str(e)}")
     finally:
         # Always clean up the temp directory
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+@app.get("/charts/transit", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+async def get_transit_chart(
+    name: str = Query(..., description="Name of the subject", example="Romeo"),
+    year: int = Query(..., description="Year of birth", example=1990),
+    month: int = Query(..., description="Month of birth", example=1),
+    day: int = Query(..., description="Day of birth", example=1),
+    hour: int = Query(..., description="Hour of birth", example=12),
+    minute: int = Query(..., description="Minute of birth", example=0),
+    city: str = Query(..., description="City of birth", example="London"),
+    lng: float = Query(..., description="Longitude of birth location", example=-0.1278),
+    lat: float = Query(..., description="Latitude of birth location", example=51.5074),
+    tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
+    nation: str = Query(" ", description="Nation of birth", example="United Kingdom"),
+    
+    t_year: int = Query(..., description="Year of transit", example=2024),
+    t_month: int = Query(..., description="Month of transit", example=1),
+    t_day: int = Query(..., description="Day of transit", example=1),
+    t_hour: int = Query(..., description="Hour of transit", example=12),
+    t_minute: int = Query(..., description="Minute of transit", example=0),
+    t_city: str = Query(..., description="City of transit", example="Paris"),
+    t_lng: float = Query(..., description="Longitude of transit location", example=2.3522),
+    t_lat: float = Query(..., description="Latitude of transit location", example=48.8566),
+    t_tz_str: str = Query(..., description="Timezone string of transit location", example="Europe/Paris"),
+    t_nation: str = Query(" ", description="Nation of transit", example="France"),
+    
+    svg: bool = Query(False, description="Return SVG image if true, else return JSON")
+):
+    import os
+    import uuid
+    import shutil
+    from glob import glob
+    
+    # Create cache key from parameters
+    cache_data = {
+        "name": name, "year": year, "month": month, "day": day,
+        "hour": hour, "minute": minute, "city": city, "lng": lng,
+        "lat": lat, "tz_str": tz_str, "nation": nation,
+        "t_year": t_year, "t_month": t_month, "t_day": t_day,
+        "t_hour": t_hour, "t_minute": t_minute, "t_city": t_city, "t_lng": t_lng,
+        "t_lat": t_lat, "t_tz_str": t_tz_str, "t_nation": t_nation,
+        "svg": svg,
+        "type": "transit"
+    }
+    cache_key = hashlib.md5(json.dumps(cache_data, sort_keys=True).encode()).hexdigest()
+    
+    # Check cache first
+    if cache_key in cache:
+        cached_response = cache[cache_key]
+        update_cache_access(cache_key)
+        
+        content_type = "SVG" if svg else "JSON"
+        logger.info(f"Cache HIT: {content_type} for transit {name} ({cache_key[:8]}...) - Cache: {len(cache)} items, {get_cache_size_mb():.2f}MB")
+        
+        if svg:
+            return Response(content=cached_response["content"], media_type="image/svg+xml")
+        else:
+            return Response(content=cached_response["content"], media_type="application/json")
+
+    base_output_dir = "./temp/output"
+    os.makedirs(base_output_dir, exist_ok=True)
+    
+    natal_subject = AstrologicalSubjectFactory.from_birth_data(
+        name, year, month, day, hour, minute, city, nation,
+        lng=lng, lat=lat, tz_str=tz_str, online=False
+    )
+    
+    transit_subject = AstrologicalSubjectFactory.from_birth_data(
+        "Transit", t_year, t_month, t_day, t_hour, t_minute, t_city, t_nation,
+        lng=t_lng, lat=t_lat, tz_str=t_tz_str, online=False
+    )
+
+    # Calculate aspects (Using synastry_aspects representing transits vs natal)
+    aspects_data = AspectsFactory.synastry_aspects(natal_subject, transit_subject)
+
+    # Calculate LLM context
+    context_text1 = to_context(natal_subject)
+    context_text2 = to_context(transit_subject)
+    context_text = f"--- Transit Context ---\n\n# {name}'s Natal Chart\n{context_text1}\n\n# Transit Sky Chart\n{context_text2}"
+    
+    # Convert to dict and add aspects and context for JSON response
+    subject_dict = {
+        "natal": natal_subject.model_dump(),
+        "transit": transit_subject.model_dump(),
+        "aspects": [aspect.model_dump() for aspect in aspects_data.aspects],
+        "context": context_text
+    }
+    
+    r = json.dumps(subject_dict, indent=2)
+
+    if not svg:
+        logger.info(f"Cache MISS: JSON for transit {name} ({cache_key[:8]}...) - Generating new response")
+        
+        content_size = sys.getsizeof(r)
+        cache[cache_key] = {
+            "content": r, 
+            "media_type": "application/json",
+            "last_used": time.time(),
+            "size": content_size
+        }
+        update_cache_access(cache_key)
+        evict_lru_items()
+        
+        logger.info(f"Cache STORE: JSON for transit {name} ({content_size} bytes) - Cache: {len(cache)} items, {get_cache_size_mb():.2f}MB")
+        return Response(content=r, media_type="application/json")
+
+    temp_dir = os.path.join(base_output_dir, uuid.uuid4().hex)
+    os.makedirs(temp_dir, exist_ok=True)
+    try:
+        chart = KerykeionChartSVG(
+            natal_subject,
+            chart_type="Transit",
+            second_obj=transit_subject,
+            new_output_directory=temp_dir,
+            chart_language="ES",
+            theme=None
+        )
+        chart.makeSVG()
+
+        svgs = sorted(
+            glob(os.path.join(temp_dir, "*.svg")),
+            key=lambda p: os.path.getmtime(p),
+            reverse=True,
+        )
+        if not svgs:
+            raise HTTPException(status_code=500, detail="SVG generation failed: no file created")
+
+        svg_path = svgs[0]
+        with open(svg_path, "r", encoding="utf-8") as f:
+            svg_text = f.read()
+
+        css_path = "./themes/astral.css"
+        try:
+            with open(css_path, "r", encoding="utf-8") as f:
+                css_content = f.read()
+            
+            if "<svg" in svg_text and "<style>" not in svg_text:
+                svg_start = svg_text.find("<svg")
+                if svg_start != -1:
+                    svg_tag_end = svg_text.find(">", svg_start)
+                    if svg_tag_end != -1:
+                        style_tag = f'\n<style type="text/css">\n<![CDATA[\n{css_content}\n]]>\n</style>\n'
+                        svg_text = svg_text[:svg_tag_end + 1] + style_tag + svg_text[svg_tag_end + 1:]
+        except FileNotFoundError:
+            pass
+
+        logger.info(f"Cache MISS: SVG for transit {name} ({cache_key[:8]}...) - Generating new chart")
+        
+        content_size = sys.getsizeof(svg_text)
+        cache[cache_key] = {
+            "content": svg_text, 
+            "media_type": "image/svg+xml",
+            "last_used": time.time(),
+            "size": content_size
+        }
+        update_cache_access(cache_key)
+        evict_lru_items()
+        
+        logger.info(f"Cache STORE: SVG for transit {name} ({content_size} bytes) - Cache: {len(cache)} items, {get_cache_size_mb():.2f}MB")
+        return Response(content=svg_text, media_type="image/svg+xml")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"SVG generation failed: {str(e)}")
+    finally:
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
         except Exception:

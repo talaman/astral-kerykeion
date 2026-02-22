@@ -20,12 +20,12 @@ def test_birth_chart_json_cache(client):
     }
     
     # First request should be a MISS, status 200
-    res1 = client.get("/gen", params=params)
+    res1 = client.get("/charts/birth", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/gen", params=params)
+    res2 = client.get("/charts/birth", params=params)
     assert res2.status_code == 200
 
 def test_birth_chart_svg_cache(client):
@@ -36,12 +36,12 @@ def test_birth_chart_svg_cache(client):
     }
     
     # First request should be a MISS, status 200
-    res1 = client.get("/gen", params=params)
+    res1 = client.get("/charts/birth", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/gen", params=params)
+    res2 = client.get("/charts/birth", params=params)
     assert res2.status_code == 200
 
 def test_synastry_chart_json_cache(client):
@@ -56,12 +56,12 @@ def test_synastry_chart_json_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/gen-synastry", params=params)
+    res1 = client.get("/charts/synastry", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/gen-synastry", params=params)
+    res2 = client.get("/charts/synastry", params=params)
     assert res2.status_code == 200
 
 def test_synastry_chart_svg_cache(client):
@@ -76,12 +76,52 @@ def test_synastry_chart_svg_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/gen-synastry", params=params)
+    res1 = client.get("/charts/synastry", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/gen-synastry", params=params)
+    res2 = client.get("/charts/synastry", params=params)
+    assert res2.status_code == 200
+
+def test_transit_chart_json_cache(client):
+    params = {
+        "name": "Romeo", "year": 1990, "month": 1, "day": 1,
+        "hour": 12, "minute": 0, "city": "London", "lng": -0.1278,
+        "lat": 51.5074, "tz_str": "Europe/London", "nation": "UK",
+        "t_year": 2024, "t_month": 1, "t_day": 1, "t_hour": 12,
+        "t_minute": 0, "t_city": "Paris", "t_lng": 2.3522,
+        "t_lat": 48.8566, "t_tz_str": "Europe/Paris", "t_nation": "France",
+        "svg": False
+    }
+
+    # First request should be a MISS, status 200
+    res1 = client.get("/charts/transit", params=params)
+    assert res1.status_code == 200
+    assert "application/json" in res1.headers["content-type"]
+    
+    # Second request should be a HIT, status 200
+    res2 = client.get("/charts/transit", params=params)
+    assert res2.status_code == 200
+
+def test_transit_chart_svg_cache(client):
+    params = {
+        "name": "Romeo", "year": 1990, "month": 1, "day": 1,
+        "hour": 12, "minute": 0, "city": "London", "lng": -0.1278,
+        "lat": 51.5074, "tz_str": "Europe/London", "nation": "UK",
+        "t_year": 2024, "t_month": 1, "t_day": 1, "t_hour": 12,
+        "t_minute": 0, "t_city": "Paris", "t_lng": 2.3522,
+        "t_lat": 48.8566, "t_tz_str": "Europe/Paris", "t_nation": "France",
+        "svg": True
+    }
+
+    # First request should be a MISS, status 200
+    res1 = client.get("/charts/transit", params=params)
+    assert res1.status_code == 200
+    assert "image/svg+xml" in res1.headers["content-type"]
+    
+    # Second request should be a HIT, status 200
+    res2 = client.get("/charts/transit", params=params)
     assert res2.status_code == 200
 
 def test_cache_endpoints(client):
@@ -89,7 +129,8 @@ def test_cache_endpoints(client):
     assert res.status_code == 200
     data = res.json()
     assert "cache_items" in data
-    assert data["cache_items"] >= 4  # We ran 4 tests that cache
+    # We should have exactly 6 unique requests (JSON/SVG for Birth, Synastry, Transit)
+    assert data["cache_items"] == 6
 
     res = client.delete("/cache/clear")
     assert res.status_code == 200

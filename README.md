@@ -8,7 +8,7 @@
 Astral Kerykeion is a lightweight HTTP API that:
 
 - Computes astrological data for a person given birth details
-- Generates beautiful SVG natal charts (with theming support)
+- Generates beautiful SVG natal, synastry, and transit charts (with theming support)
 - Caches responses in-memory with LRU-style eviction
 - Ships with Docker and Kubernetes manifests for easy deployment
 
@@ -61,39 +61,52 @@ Open http://localhost:8000/docs
 
 ## API
 
-### GET /gen
-
-Produces either application/json or image/svg+xml depending on the svg flag.
+### Natal Chart
+- **Path**: `/charts/birth` (alias: `/gen`)
+- **Method**: GET
+- **Returns**: `application/json` or `image/svg+xml` depending on the `svg` flag.
 
 Query parameters:
+- `name` (string) — subject name
+- `year` (int) — year of birth
+- `month` (int) — month of birth (1-12)
+- `day` (int) — day of birth (1-31)
+- `hour` (int) — hour (0-23)
+- `minute` (int) — minute (0-59)
+- `city` (string) — city name
+- `lng` (float) — longitude
+- `lat` (float) — latitude
+- `tz_str` (string) — timezone, e.g. `Europe/London`
+- `svg` (bool, default false) — when true returns SVG; otherwise JSON
 
-- name (string) — subject name
-- year (int) — year of birth
-- month (int) — month of birth (1-12)
-- day (int) — day of birth (1-31)
-- hour (int) — hour (0-23)
-- minute (int) — minute (0-59)
-- city (string) — city name
-- lng (float) — longitude
-- lat (float) — latitude
-- tz_str (string) — timezone, e.g. Europe/London
-- svg (bool, default false) — when true returns SVG; otherwise JSON
+### Synastry Chart
+- **Path**: `/charts/synastry`
+- **Method**: GET
+- **Description**: Compares two charts.
+- **Parameters**: `name1`, `year1`, `month1`, `day1`, `hour1`, `minute1`, `city1`, `lng1`, `lat1`, `tz_str1` AND same for person 2 (e.g. `name2`, `year2`, ...).
 
-Example (JSON):
+### Transit Chart
+- **Path**: `/charts/transit`
+- **Method**: GET
+- **Description**: Composes a transit chart over a natal chart.
+- **Parameters**: 
+  - Natal: `name`, `year`, `month`, `day`, `hour`, `minute`, `city`, `lng`, `lat`, `tz_str`
+  - Transit reference: `t_year`, `t_month`, `t_day`, `t_hour`, `t_minute`, `t_city`, `t_lng`, `t_lat`, `t_tz_str`
 
+### Examples
+
+**Birth Chart (JSON):**
 ```
-GET /gen?name=Ada%20Lovelace&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe%2FLondon
+GET /charts/birth?name=Ada%20Lovelace&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe%2FLondon
 ```
 
-Example (SVG):
-
+**Transit Chart (SVG):**
 ```
-GET /gen?name=Ada%20Lovelace&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe%2FLondon&svg=true
+GET /charts/transit?name=Ada&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe/London&t_year=2024&t_month=1&t_day=1&t_hour=12&t_minute=0&t_city=London&t_lng=-0.1278&t_lat=51.5074&t_tz_str=Europe/London&svg=true
 ```
 
 Response:
-
-- 200 OK — application/json or image/svg+xml
+- 200 OK — `application/json` or `image/svg+xml`
 - 400/422 — validation error for bad or missing parameters
 - 500 — chart generation failure (rare)
 
