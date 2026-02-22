@@ -29,23 +29,23 @@ OpenAPI docs are available at /docs when the server is running.
 
 ### Option A — Local (Windows)
 
-Prereqs: Python 3.11+
+Prereqs: [uv](https://docs.astral.sh/uv/) installed.
 
 ```bat
 cd app
-python -m venv .venv
+uv venv
+# On Windows:
 .venv\Scripts\activate
-pip install --upgrade pip
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8002
 ```
 
 Now open http://localhost:8002/docs
 
-To run the testing suite (with the server running on port 8002):
+To run the testing suite:
 
 ```bat
-python -m pytest tests
+uv run python -m pytest tests -v
 ```
 
 ### Option B — Docker
