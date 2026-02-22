@@ -958,6 +958,7 @@ async def get_lunar_return_chart(
     except Exception as e:
         logger.exception("Lunar return calculation failed")
         raise HTTPException(status_code=500, detail=f"Lunar return generation failed: {str(e)}")
+    finally:
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
         except Exception:
