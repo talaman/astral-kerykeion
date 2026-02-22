@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
-from kerykeion import AstrologicalSubject, KerykeionChartSVG, AspectsFactory, AstrologicalSubjectFactory, to_context
+from kerykeion import AstrologicalSubject, AspectsFactory, AstrologicalSubjectFactory, to_context
 from kerykeion.planetary_return_factory import PlanetaryReturnFactory
 from kerykeion.composite_subject_factory import CompositeSubjectFactory
 from kerykeion.chart_data_factory import ChartDataFactory
@@ -135,17 +135,17 @@ async def update_cache_config(max_items: int = None, max_size_mb: float = None):
 @app.get("/gen", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 @app.get("/charts/birth", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_chart(
-    name: str = Query(..., description="Name of the subject", example="Ada Lovelace"),
-    year: int = Query(..., description="Year of birth", example=1815),
-    month: int = Query(..., description="Month of birth", example=12),
-    day: int = Query(..., description="Day of birth", example=10),
-    hour: int = Query(..., description="Hour of birth", example=6),
-    minute: int = Query(..., description="Minute of birth", example=0),
-    city: str = Query(..., description="City of birth", example="London"),
-    lng: float = Query(..., description="Longitude of birth location", example=-0.1278),
-    lat: float = Query(..., description="Latitude of birth location", example=51.5074),
-    tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
-    nation: str = Query(" ", description="nation of birth", example="United Kingdom"),
+    name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
+    year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
+    month: int = Query(..., description="Month of birth", json_schema_extra={"example": 12}),
+    day: int = Query(..., description="Day of birth", json_schema_extra={"example": 10}),
+    hour: int = Query(..., description="Hour of birth", json_schema_extra={"example": 6}),
+    minute: int = Query(..., description="Minute of birth", json_schema_extra={"example": 0}),
+    city: str = Query(..., description="City of birth", json_schema_extra={"example": "London"}),
+    lng: float = Query(..., description="Longitude of birth location", json_schema_extra={"example": -0.1278}),
+    lat: float = Query(..., description="Latitude of birth location", json_schema_extra={"example": 51.5074}),
+    tz_str: str = Query(..., description="Timezone string of birth location", json_schema_extra={"example": "Europe/London"}),
+    nation: str = Query(" ", description="nation of birth", json_schema_extra={"example": "United Kingdom"}),
     svg: bool = Query(False, description="Return SVG image if true, else return JSON")
 
 ):
@@ -231,25 +231,19 @@ async def get_chart(
     temp_dir = os.path.join(base_output_dir, uuid.uuid4().hex)
     os.makedirs(temp_dir, exist_ok=True)
     try:
-        chart = KerykeionChartSVG(
-            subject1,
-            new_output_directory=temp_dir,
-            chart_language="ES",
-            theme=None
-        )
-        # This writes the SVG to temp_dir and returns None
-        chart.makeSVG()
+        from pathlib import Path
+        
+        # Refactored to use ChartDataFactory and ChartDrawer
+        chart_data = ChartDataFactory.create_natal_chart_data(subject1)
+        chart = ChartDrawer(chart_data=chart_data, chart_language="ES")
+        
+        filename = f"birth_{uuid.uuid4().hex}"
+        chart.save_svg(output_path=Path(temp_dir), filename=filename)
 
-        # Find the generated SVG (pick the newest if multiple exist)
-        svgs = sorted(
-            glob(os.path.join(temp_dir, "*.svg")),
-            key=lambda p: os.path.getmtime(p),
-            reverse=True,
-        )
-        if not svgs:
+        svg_path = os.path.join(temp_dir, f"{filename}.svg")
+        if not os.path.exists(svg_path):
             raise HTTPException(status_code=500, detail="SVG generation failed: no file created")
 
-        svg_path = svgs[0]
         with open(svg_path, "r", encoding="utf-8") as f:
             svg_text = f.read()
 
@@ -260,7 +254,9 @@ async def get_chart(
                 css_content = f.read()
             
             # Embed CSS into SVG
-            if "<svg" in svg_text and "<style>" not in svg_text:
+            if "</style>" in svg_text:
+                svg_text = svg_text.replace("</style>", f"\n{css_content}\n</style>")
+            elif "<svg" in svg_text:
                 # Find the first occurrence of > after <svg to insert the style tag
                 svg_start = svg_text.find("<svg")
                 if svg_start != -1:
@@ -301,29 +297,29 @@ async def get_chart(
 
 @app.get("/charts/synastry", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_synastry_chart(
-    name1: str = Query(..., description="Name of the first subject", example="Romeo"),
-    year1: int = Query(..., description="Year of birth", example=1990),
-    month1: int = Query(..., description="Month of birth", example=1),
-    day1: int = Query(..., description="Day of birth", example=1),
-    hour1: int = Query(..., description="Hour of birth", example=12),
-    minute1: int = Query(..., description="Minute of birth", example=0),
-    city1: str = Query(..., description="City of birth", example="London"),
-    lng1: float = Query(..., description="Longitude of birth location", example=-0.1278),
-    lat1: float = Query(..., description="Latitude of birth location", example=51.5074),
-    tz_str1: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
-    nation1: str = Query(" ", description="Nation of birth", example="United Kingdom"),
+    name1: str = Query(..., description="Name of the first subject", json_schema_extra={"example": "Romeo"}),
+    year1: int = Query(..., description="Year of birth", json_schema_extra={"example": 1990}),
+    month1: int = Query(..., description="Month of birth", json_schema_extra={"example": 1}),
+    day1: int = Query(..., description="Day of birth", json_schema_extra={"example": 1}),
+    hour1: int = Query(..., description="Hour of birth", json_schema_extra={"example": 12}),
+    minute1: int = Query(..., description="Minute of birth", json_schema_extra={"example": 0}),
+    city1: str = Query(..., description="City of birth", json_schema_extra={"example": "London"}),
+    lng1: float = Query(..., description="Longitude of birth location", json_schema_extra={"example": -0.1278}),
+    lat1: float = Query(..., description="Latitude of birth location", json_schema_extra={"example": 51.5074}),
+    tz_str1: str = Query(..., description="Timezone string of birth location", json_schema_extra={"example": "Europe/London"}),
+    nation1: str = Query(" ", description="Nation of birth", json_schema_extra={"example": "United Kingdom"}),
     
-    name2: str = Query(..., description="Name of the second subject", example="Juliet"),
-    year2: int = Query(..., description="Year of birth", example=1995),
-    month2: int = Query(..., description="Month of birth", example=2),
-    day2: int = Query(..., description="Day of birth", example=14),
-    hour2: int = Query(..., description="Hour of birth", example=12),
-    minute2: int = Query(..., description="Minute of birth", example=0),
-    city2: str = Query(..., description="City of birth", example="Paris"),
-    lng2: float = Query(..., description="Longitude of birth location", example=2.3522),
-    lat2: float = Query(..., description="Latitude of birth location", example=48.8566),
-    tz_str2: str = Query(..., description="Timezone string of birth location", example="Europe/Paris"),
-    nation2: str = Query(" ", description="Nation of birth", example="France"),
+    name2: str = Query(..., description="Name of the second subject", json_schema_extra={"example": "Juliet"}),
+    year2: int = Query(..., description="Year of birth", json_schema_extra={"example": 1995}),
+    month2: int = Query(..., description="Month of birth", json_schema_extra={"example": 2}),
+    day2: int = Query(..., description="Day of birth", json_schema_extra={"example": 14}),
+    hour2: int = Query(..., description="Hour of birth", json_schema_extra={"example": 12}),
+    minute2: int = Query(..., description="Minute of birth", json_schema_extra={"example": 0}),
+    city2: str = Query(..., description="City of birth", json_schema_extra={"example": "Paris"}),
+    lng2: float = Query(..., description="Longitude of birth location", json_schema_extra={"example": 2.3522}),
+    lat2: float = Query(..., description="Latitude of birth location", json_schema_extra={"example": 48.8566}),
+    tz_str2: str = Query(..., description="Timezone string of birth location", json_schema_extra={"example": "Europe/Paris"}),
+    nation2: str = Query(" ", description="Nation of birth", json_schema_extra={"example": "France"}),
     
     svg: bool = Query(False, description="Return SVG image if true, else return JSON")
 ):
@@ -410,26 +406,19 @@ async def get_synastry_chart(
     temp_dir = os.path.join(base_output_dir, uuid.uuid4().hex)
     os.makedirs(temp_dir, exist_ok=True)
     try:
-        chart = KerykeionChartSVG(
-            subject1,
-            chart_type="Synastry",
-            second_obj=subject2,
-            new_output_directory=temp_dir,
-            chart_language="ES",
-            theme=None
-        )
-        chart.makeSVG()
+        from pathlib import Path
+        
+        # Refactored to use ChartDataFactory and ChartDrawer
+        chart_data = ChartDataFactory.create_synastry_chart_data(subject1, subject2)
+        chart = ChartDrawer(chart_data=chart_data, chart_language="ES")
+        
+        filename = f"synastry_{uuid.uuid4().hex}"
+        chart.save_svg(output_path=Path(temp_dir), filename=filename)
 
-        # Find the generated SVG (pick the newest if multiple exist)
-        svgs = sorted(
-            glob(os.path.join(temp_dir, "*.svg")),
-            key=lambda p: os.path.getmtime(p),
-            reverse=True,
-        )
-        if not svgs:
+        svg_path = os.path.join(temp_dir, f"{filename}.svg")
+        if not os.path.exists(svg_path):
             raise HTTPException(status_code=500, detail="SVG generation failed: no file created")
 
-        svg_path = svgs[0]
         with open(svg_path, "r", encoding="utf-8") as f:
             svg_text = f.read()
 
@@ -440,7 +429,9 @@ async def get_synastry_chart(
                 css_content = f.read()
             
             # Embed CSS into SVG
-            if "<svg" in svg_text and "<style>" not in svg_text:
+            if "</style>" in svg_text:
+                svg_text = svg_text.replace("</style>", f"\n{css_content}\n</style>")
+            elif "<svg" in svg_text:
                 svg_start = svg_text.find("<svg")
                 if svg_start != -1:
                     svg_tag_end = svg_text.find(">", svg_start)
@@ -475,28 +466,28 @@ async def get_synastry_chart(
 
 @app.get("/charts/transit", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_transit_chart(
-    name: str = Query(..., description="Name of the subject", example="Romeo"),
-    year: int = Query(..., description="Year of birth", example=1990),
-    month: int = Query(..., description="Month of birth", example=1),
-    day: int = Query(..., description="Day of birth", example=1),
-    hour: int = Query(..., description="Hour of birth", example=12),
-    minute: int = Query(..., description="Minute of birth", example=0),
-    city: str = Query(..., description="City of birth", example="London"),
-    lng: float = Query(..., description="Longitude of birth location", example=-0.1278),
-    lat: float = Query(..., description="Latitude of birth location", example=51.5074),
-    tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
-    nation: str = Query(" ", description="Nation of birth", example="United Kingdom"),
+    name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Romeo"}),
+    year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1990}),
+    month: int = Query(..., description="Month of birth", json_schema_extra={"example": 1}),
+    day: int = Query(..., description="Day of birth", json_schema_extra={"example": 1}),
+    hour: int = Query(..., description="Hour of birth", json_schema_extra={"example": 12}),
+    minute: int = Query(..., description="Minute of birth", json_schema_extra={"example": 0}),
+    city: str = Query(..., description="City of birth", json_schema_extra={"example": "London"}),
+    lng: float = Query(..., description="Longitude of birth location", json_schema_extra={"example": -0.1278}),
+    lat: float = Query(..., description="Latitude of birth location", json_schema_extra={"example": 51.5074}),
+    tz_str: str = Query(..., description="Timezone string of birth location", json_schema_extra={"example": "Europe/London"}),
+    nation: str = Query(" ", description="Nation of birth", json_schema_extra={"example": "United Kingdom"}),
     
-    t_year: int = Query(..., description="Year of transit", example=2024),
-    t_month: int = Query(..., description="Month of transit", example=1),
-    t_day: int = Query(..., description="Day of transit", example=1),
-    t_hour: int = Query(..., description="Hour of transit", example=12),
-    t_minute: int = Query(..., description="Minute of transit", example=0),
-    t_city: str = Query(..., description="City of transit", example="Paris"),
-    t_lng: float = Query(..., description="Longitude of transit location", example=2.3522),
-    t_lat: float = Query(..., description="Latitude of transit location", example=48.8566),
-    t_tz_str: str = Query(..., description="Timezone string of transit location", example="Europe/Paris"),
-    t_nation: str = Query(" ", description="Nation of transit", example="France"),
+    t_year: int = Query(..., description="Year of transit", json_schema_extra={"example": 2024}),
+    t_month: int = Query(..., description="Month of transit", json_schema_extra={"example": 1}),
+    t_day: int = Query(..., description="Day of transit", json_schema_extra={"example": 1}),
+    t_hour: int = Query(..., description="Hour of transit", json_schema_extra={"example": 12}),
+    t_minute: int = Query(..., description="Minute of transit", json_schema_extra={"example": 0}),
+    t_city: str = Query(..., description="City of transit", json_schema_extra={"example": "Paris"}),
+    t_lng: float = Query(..., description="Longitude of transit location", json_schema_extra={"example": 2.3522}),
+    t_lat: float = Query(..., description="Latitude of transit location", json_schema_extra={"example": 48.8566}),
+    t_tz_str: str = Query(..., description="Timezone string of transit location", json_schema_extra={"example": "Europe/Paris"}),
+    t_nation: str = Query(" ", description="Nation of transit", json_schema_extra={"example": "France"}),
     
     svg: bool = Query(False, description="Return SVG image if true, else return JSON")
 ):
@@ -581,25 +572,19 @@ async def get_transit_chart(
     temp_dir = os.path.join(base_output_dir, uuid.uuid4().hex)
     os.makedirs(temp_dir, exist_ok=True)
     try:
-        chart = KerykeionChartSVG(
-            natal_subject,
-            chart_type="Transit",
-            second_obj=transit_subject,
-            new_output_directory=temp_dir,
-            chart_language="ES",
-            theme=None
-        )
-        chart.makeSVG()
+        from pathlib import Path
+        
+        # Refactored to use ChartDataFactory and ChartDrawer
+        chart_data = ChartDataFactory.create_transit_chart_data(natal_subject, transit_subject)
+        chart = ChartDrawer(chart_data=chart_data, chart_language="ES")
+        
+        filename = f"transit_{uuid.uuid4().hex}"
+        chart.save_svg(output_path=Path(temp_dir), filename=filename)
 
-        svgs = sorted(
-            glob(os.path.join(temp_dir, "*.svg")),
-            key=lambda p: os.path.getmtime(p),
-            reverse=True,
-        )
-        if not svgs:
+        svg_path = os.path.join(temp_dir, f"{filename}.svg")
+        if not os.path.exists(svg_path):
             raise HTTPException(status_code=500, detail="SVG generation failed: no file created")
 
-        svg_path = svgs[0]
         with open(svg_path, "r", encoding="utf-8") as f:
             svg_text = f.read()
 
@@ -608,7 +593,9 @@ async def get_transit_chart(
             with open(css_path, "r", encoding="utf-8") as f:
                 css_content = f.read()
             
-            if "<svg" in svg_text and "<style>" not in svg_text:
+            if "</style>" in svg_text:
+                svg_text = svg_text.replace("</style>", f"\n{css_content}\n</style>")
+            elif "<svg" in svg_text:
                 svg_start = svg_text.find("<svg")
                 if svg_start != -1:
                     svg_tag_end = svg_text.find(">", svg_start)
@@ -642,19 +629,19 @@ async def get_transit_chart(
 
 @app.get("/charts/solar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_solar_return_chart(
-    name: str = Query(..., description="Name of the subject", example="Ada Lovelace"),
-    year: int = Query(..., description="Year of birth", example=1815),
-    month: int = Query(..., description="Month of birth", example=12),
-    day: int = Query(..., description="Day of birth", example=10),
-    hour: int = Query(..., description="Hour of birth", example=6),
-    minute: int = Query(..., description="Minute of birth", example=0),
-    city: str = Query(..., description="City of birth", example="London"),
-    lng: float = Query(..., description="Longitude of birth location", example=-0.1278),
-    lat: float = Query(..., description="Latitude of birth location", example=51.5074),
-    tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
-    nation: str = Query(" ", description="Nation of birth", example="United Kingdom"),
+    name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
+    year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
+    month: int = Query(..., description="Month of birth", json_schema_extra={"example": 12}),
+    day: int = Query(..., description="Day of birth", json_schema_extra={"example": 10}),
+    hour: int = Query(..., description="Hour of birth", json_schema_extra={"example": 6}),
+    minute: int = Query(..., description="Minute of birth", json_schema_extra={"example": 0}),
+    city: str = Query(..., description="City of birth", json_schema_extra={"example": "London"}),
+    lng: float = Query(..., description="Longitude of birth location", json_schema_extra={"example": -0.1278}),
+    lat: float = Query(..., description="Latitude of birth location", json_schema_extra={"example": 51.5074}),
+    tz_str: str = Query(..., description="Timezone string of birth location", json_schema_extra={"example": "Europe/London"}),
+    nation: str = Query(" ", description="Nation of birth", json_schema_extra={"example": "United Kingdom"}),
     
-    return_year: int = Query(..., description="Year for the solar return", example=2024),
+    return_year: int = Query(..., description="Year for the solar return", json_schema_extra={"example": 2024}),
     
     svg: bool = Query(False, description="Return SVG image if true, else return JSON")
 ):
@@ -772,8 +759,9 @@ async def get_solar_return_chart(
         try:
             with open(css_path, "r", encoding="utf-8") as f:
                 css_content = f.read()
-            
-            if "<svg" in svg_text and "<style>" not in svg_text:
+            if "</style>" in svg_text:
+                svg_text = svg_text.replace("</style>", f"\n{css_content}\n</style>")
+            elif "<svg" in svg_text:
                 svg_start = svg_text.find("<svg")
                 if svg_start != -1:
                     svg_tag_end = svg_text.find(">", svg_start)
@@ -808,21 +796,21 @@ async def get_solar_return_chart(
 
 @app.get("/charts/lunar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_lunar_return_chart(
-    name: str = Query(..., description="Name of the subject", example="Ada Lovelace"),
-    year: int = Query(..., description="Year of birth", example=1815),
-    month: int = Query(..., description="Month of birth", example=12),
-    day: int = Query(..., description="Day of birth", example=10),
-    hour: int = Query(..., description="Hour of birth", example=6),
-    minute: int = Query(..., description="Minute of birth", example=0),
-    city: str = Query(..., description="City of birth", example="London"),
-    lng: float = Query(..., description="Longitude of birth location", example=-0.1278),
-    lat: float = Query(..., description="Latitude of birth location", example=51.5074),
-    tz_str: str = Query(..., description="Timezone string of birth location", example="Europe/London"),
-    nation: str = Query(" ", description="Nation of birth", example="United Kingdom"),
+    name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
+    year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
+    month: int = Query(..., description="Month of birth", json_schema_extra={"example": 12}),
+    day: int = Query(..., description="Day of birth", json_schema_extra={"example": 10}),
+    hour: int = Query(..., description="Hour of birth", json_schema_extra={"example": 6}),
+    minute: int = Query(..., description="Minute of birth", json_schema_extra={"example": 0}),
+    city: str = Query(..., description="City of birth", json_schema_extra={"example": "London"}),
+    lng: float = Query(..., description="Longitude of birth location", json_schema_extra={"example": -0.1278}),
+    lat: float = Query(..., description="Latitude of birth location", json_schema_extra={"example": 51.5074}),
+    tz_str: str = Query(..., description="Timezone string of birth location", json_schema_extra={"example": "Europe/London"}),
+    nation: str = Query(" ", description="Nation of birth", json_schema_extra={"example": "United Kingdom"}),
     
-    return_year: int = Query(..., description="Target year for the return search", example=2024),
-    return_month: int = Query(..., description="Target month for the return search", example=1),
-    return_day: int = Query(..., description="Target day for the return search", example=1),
+    return_year: int = Query(..., description="Target year for the return search", json_schema_extra={"example": 2024}),
+    return_month: int = Query(..., description="Target month for the return search", json_schema_extra={"example": 1}),
+    return_day: int = Query(..., description="Target day for the return search", json_schema_extra={"example": 1}),
     
     svg: bool = Query(False, description="Return SVG image if true, else return JSON")
 ):
@@ -941,7 +929,9 @@ async def get_lunar_return_chart(
             with open(css_path, "r", encoding="utf-8") as f:
                 css_content = f.read()
             
-            if "<svg" in svg_text and "<style>" not in svg_text:
+            if "</style>" in svg_text:
+                svg_text = svg_text.replace("</style>", f"\n{css_content}\n</style>")
+            elif "<svg" in svg_text:
                 svg_start = svg_text.find("<svg")
                 if svg_start != -1:
                     svg_tag_end = svg_text.find(">", svg_start)
@@ -975,31 +965,31 @@ async def get_lunar_return_chart(
 
 @app.get("/charts/composite", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
 async def get_composite_chart(
-    name1: str = Query(..., description="Name of subject 1", example="Romeo"),
-    year1: int = Query(..., description="Year of birth 1", example=1990),
-    month1: int = Query(..., description="Month of birth 1", example=1),
-    day1: int = Query(..., description="Day of birth 1", example=1),
-    hour1: int = Query(..., description="Hour of birth 1", example=12),
-    minute1: int = Query(..., description="Minute of birth 1", example=0),
-    city1: str = Query(..., description="City of birth 1", example="Verona"),
-    lng1: float = Query(..., description="Longitude 1", example=10.99),
-    lat1: float = Query(..., description="Latitude 1", example=45.44),
-    tz_str1: str = Query(..., description="Timezone 1", example="Europe/Rome"),
-    nation1: str = Query(" ", description="Nation 1", example="Italy"),
-
-    name2: str = Query(..., description="Name of subject 2", example="Juliet"),
-    year2: int = Query(..., description="Year of birth 2", example=1990),
-    month2: int = Query(..., description="Month of birth 2", example=1),
-    day2: int = Query(..., description="Day of birth 2", example=1),
-    hour2: int = Query(..., description="Hour of birth 2", example=12),
-    minute2: int = Query(..., description="Minute of birth 2", example=0),
-    city2: str = Query(..., description="City of birth 2", example="Verona"),
-    lng2: float = Query(..., description="Longitude 2", example=10.99),
-    lat2: float = Query(..., description="Latitude 2", example=45.44),
-    tz_str2: str = Query(..., description="Timezone 2", example="Europe/Rome"),
-    nation2: str = Query(" ", description="Nation 2", example="Italy"),
+    name1: str = Query(..., description="Name of subject 1", json_schema_extra={"example": "Romeo"}),
+    year1: int = Query(..., description="Year of birth 1", json_schema_extra={"example": 1990}),
+    month1: int = Query(..., description="Month of birth 1", json_schema_extra={"example": 1}),
+    day1: int = Query(..., description="Day of birth 1", json_schema_extra={"example": 1}),
+    hour1: int = Query(..., description="Hour of birth 1", json_schema_extra={"example": 12}),
+    minute1: int = Query(..., description="Minute of birth 1", json_schema_extra={"example": 0}),
+    city1: str = Query(..., description="City of birth 1", json_schema_extra={"example": "Verona"}),
+    lng1: float = Query(..., description="Longitude 1", json_schema_extra={"example": 10.99}),
+    lat1: float = Query(..., description="Latitude 1", json_schema_extra={"example": 45.44}),
+    tz_str1: str = Query(..., description="Timezone 1", json_schema_extra={"example": "Europe/Rome"}),
+    nation1: str = Query(" ", description="Nation 1", json_schema_extra={"example": "Italy"}),
+ 
+    name2: str = Query(..., description="Name of subject 2", json_schema_extra={"example": "Juliet"}),
+    year2: int = Query(..., description="Year of birth 2", json_schema_extra={"example": 1990}),
+    month2: int = Query(..., description="Month of birth 2", json_schema_extra={"example": 1}),
+    day2: int = Query(..., description="Day of birth 2", json_schema_extra={"example": 1}),
+    hour2: int = Query(..., description="Hour of birth 2", json_schema_extra={"example": 12}),
+    minute2: int = Query(..., description="Minute of birth 2", json_schema_extra={"example": 0}),
+    city2: str = Query(..., description="City of birth 2", json_schema_extra={"example": "Verona"}),
+    lng2: float = Query(..., description="Longitude 2", json_schema_extra={"example": 10.99}),
+    lat2: float = Query(..., description="Latitude 2", json_schema_extra={"example": 45.44}),
+    tz_str2: str = Query(..., description="Timezone 2", json_schema_extra={"example": "Europe/Rome"}),
+    nation2: str = Query(" ", description="Nation 2", json_schema_extra={"example": "Italy"}),
     
-    svg: bool = Query(False, description="Return SVG image if true, else return JSON", example=False)
+    svg: bool = Query(False, description="Return SVG image if true, else return JSON", json_schema_extra={"example": False})
 ):
     import os
     import uuid
@@ -1070,11 +1060,15 @@ async def get_composite_chart(
         try:
             with open(css_path, "r", encoding="utf-8") as f:
                 css_content = f.read()
-            if "<svg" in svg_text and "<style>" not in svg_text:
+            if "</style>" in svg_text:
+                svg_text = svg_text.replace("</style>", f"\n{css_content}\n</style>")
+            elif "<svg" in svg_text:
                 svg_start = svg_text.find("<svg")
-                svg_tag_end = svg_text.find(">", svg_start)
-                style_tag = f'\n<style type="text/css">\n<![CDATA[\n{css_content}\n]]>\n</style>\n'
-                svg_text = svg_text[:svg_tag_end + 1] + style_tag + svg_text[svg_tag_end + 1:]
+                if svg_start != -1:
+                    svg_tag_end = svg_text.find(">", svg_start)
+                    if svg_tag_end != -1:
+                        style_tag = f'\n<style type="text/css">\n<![CDATA[\n{css_content}\n]]>\n</style>\n'
+                        svg_text = svg_text[:svg_tag_end + 1] + style_tag + svg_text[svg_tag_end + 1:]
         except FileNotFoundError:
             pass
 
