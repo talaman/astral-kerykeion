@@ -25,11 +25,11 @@ jobs:
       - name: Install dependencies
         run: |
           cd app
-          uv pip install -r requirements.txt
+          uv pip install --system -r requirements.txt
       - name: Run tests
         run: |
           cd app
-          uv run python -m pytest tests -v
+          uv run --system python -m pytest tests -v
   build:
     needs: test
     
