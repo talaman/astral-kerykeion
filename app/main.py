@@ -15,7 +15,22 @@ from chart_helpers import create_subject, generate_svg
 # App & middleware
 # ---------------------------------------------------------------------------
 
-app = FastAPI()
+openapi_tags = [
+    {
+        "name": "General",
+        "description": "Health check and root endpoint.",
+    },
+    {
+        "name": "Cache",
+        "description": "Inspect and manage the in-memory response cache.",
+    },
+    {
+        "name": "Charts",
+        "description": "Natal, synastry, transit, return, and composite chart endpoints.",
+    },
+]
+
+app = FastAPI(openapi_tags=openapi_tags)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -65,23 +80,23 @@ def _svg_response(chart_data, prefix: str, cache_key: str) -> Response:
 # ---------------------------------------------------------------------------
 
 
-@app.get("/")
+@app.get("/", tags=["General"])
 async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/cache/info")
+@app.get("/cache/info", tags=["Cache"])
 async def cache_info():
     return cache.info()
 
 
-@app.delete("/cache/clear")
+@app.delete("/cache/clear", tags=["Cache"])
 async def clear_cache():
     cache.clear()
     return {"message": "Cache cleared successfully"}
 
 
-@app.put("/cache/config")
+@app.put("/cache/config", tags=["Cache"])
 async def update_cache_config(max_items: int = None, max_size_mb: float = None):
     return cache.update_config(max_items, max_size_mb)
 
@@ -91,8 +106,8 @@ async def update_cache_config(max_items: int = None, max_size_mb: float = None):
 # ---------------------------------------------------------------------------
 
 
-@app.get("/gen", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
-@app.get("/charts/birth", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/birth", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
+@app.get("/gen", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
     year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
@@ -137,7 +152,7 @@ async def get_chart(
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/synastry", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/synastry", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_synastry_chart(
     name1: str = Query(..., description="Name of the first subject", json_schema_extra={"example": "Romeo"}),
     year1: int = Query(..., description="Year of birth", json_schema_extra={"example": 1990}),
@@ -206,7 +221,7 @@ async def get_synastry_chart(
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/transit", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/transit", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_transit_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Romeo"}),
     year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1990}),
@@ -274,7 +289,7 @@ async def get_transit_chart(
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/solar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/solar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_solar_return_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
     year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
@@ -336,7 +351,7 @@ async def get_solar_return_chart(
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/lunar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/lunar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_lunar_return_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
     year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
@@ -401,7 +416,7 @@ async def get_lunar_return_chart(
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/composite", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+@app.get("/charts/composite", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_composite_chart(
     name1: str = Query(..., description="Name of subject 1", json_schema_extra={"example": "Romeo"}),
     year1: int = Query(..., description="Year of birth 1", json_schema_extra={"example": 1990}),
