@@ -19,12 +19,12 @@ def test_birth_chart_json_cache(client):
     }
     
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/birth", params=params)
+    res1 = client.get("/gen/birth", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/birth", params=params)
+    res2 = client.get("/gen/birth", params=params)
     assert res2.status_code == 200
 
 def test_birth_chart_svg_cache(client):
@@ -35,12 +35,12 @@ def test_birth_chart_svg_cache(client):
     }
     
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/birth", params=params)
+    res1 = client.get("/gen/birth", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/birth", params=params)
+    res2 = client.get("/gen/birth", params=params)
     assert res2.status_code == 200
 
 def test_synastry_chart_json_cache(client):
@@ -55,12 +55,12 @@ def test_synastry_chart_json_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/synastry", params=params)
+    res1 = client.get("/gen/synastry", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/synastry", params=params)
+    res2 = client.get("/gen/synastry", params=params)
     assert res2.status_code == 200
 
 def test_synastry_chart_svg_cache(client):
@@ -75,12 +75,12 @@ def test_synastry_chart_svg_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/synastry", params=params)
+    res1 = client.get("/gen/synastry", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/synastry", params=params)
+    res2 = client.get("/gen/synastry", params=params)
     assert res2.status_code == 200
 
 def test_transit_chart_json_cache(client):
@@ -95,12 +95,12 @@ def test_transit_chart_json_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/transit", params=params)
+    res1 = client.get("/gen/transit", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/transit", params=params)
+    res2 = client.get("/gen/transit", params=params)
     assert res2.status_code == 200
 
 def test_transit_chart_svg_cache(client):
@@ -115,12 +115,12 @@ def test_transit_chart_svg_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/transit", params=params)
+    res1 = client.get("/gen/transit", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/transit", params=params)
+    res2 = client.get("/gen/transit", params=params)
     assert res2.status_code == 200
 
 def test_solar_return_chart_json_cache(client):
@@ -132,12 +132,12 @@ def test_solar_return_chart_json_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/solar-return", params=params)
+    res1 = client.get("/gen/solar-return", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/solar-return", params=params)
+    res2 = client.get("/gen/solar-return", params=params)
     assert res2.status_code == 200
 
 def test_solar_return_chart_svg_cache(client):
@@ -149,12 +149,12 @@ def test_solar_return_chart_svg_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/solar-return", params=params)
+    res1 = client.get("/gen/solar-return", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/solar-return", params=params)
+    res2 = client.get("/gen/solar-return", params=params)
     assert res2.status_code == 200
 
 def test_lunar_return_chart_json_cache(client):
@@ -166,12 +166,12 @@ def test_lunar_return_chart_json_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/lunar-return", params=params)
+    res1 = client.get("/gen/lunar-return", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/lunar-return", params=params)
+    res2 = client.get("/gen/lunar-return", params=params)
     assert res2.status_code == 200
 
 def test_lunar_return_chart_svg_cache(client):
@@ -183,12 +183,12 @@ def test_lunar_return_chart_svg_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/lunar-return", params=params)
+    res1 = client.get("/gen/lunar-return", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/lunar-return", params=params)
+    res2 = client.get("/gen/lunar-return", params=params)
     assert res2.status_code == 200
 
 def test_composite_chart_json_cache(client):
@@ -203,12 +203,12 @@ def test_composite_chart_json_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/composite", params=params)
+    res1 = client.get("/gen/composite", params=params)
     assert res1.status_code == 200
     assert "application/json" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/composite", params=params)
+    res2 = client.get("/gen/composite", params=params)
     assert res2.status_code == 200
 
 def test_composite_chart_svg_cache(client):
@@ -223,12 +223,12 @@ def test_composite_chart_svg_cache(client):
     }
 
     # First request should be a MISS, status 200
-    res1 = client.get("/charts/composite", params=params)
+    res1 = client.get("/gen/composite", params=params)
     assert res1.status_code == 200
     assert "image/svg+xml" in res1.headers["content-type"]
     
     # Second request should be a HIT, status 200
-    res2 = client.get("/charts/composite", params=params)
+    res2 = client.get("/gen/composite", params=params)
     assert res2.status_code == 200
 
 def test_cache_endpoints(client):
