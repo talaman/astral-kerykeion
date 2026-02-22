@@ -102,11 +102,11 @@ async def update_cache_config(max_items: int = None, max_size_mb: float = None):
 
 
 # ---------------------------------------------------------------------------
-# /gen  &  /charts/birth
+# /gen  &  /gen/birth
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/birth", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
+@app.get("/gen/birth", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 @app.get("/gen", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
@@ -148,11 +148,11 @@ async def get_chart(
 
 
 # ---------------------------------------------------------------------------
-# /charts/synastry
+# /gen/synastry
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/synastry", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
+@app.get("/gen/synastry", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_synastry_chart(
     name1: str = Query(..., description="Name of the first subject", json_schema_extra={"example": "Romeo"}),
     year1: int = Query(..., description="Year of birth", json_schema_extra={"example": 1990}),
@@ -217,11 +217,11 @@ async def get_synastry_chart(
 
 
 # ---------------------------------------------------------------------------
-# /charts/transit
+# /gen/transit
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/transit", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
+@app.get("/gen/transit", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_transit_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Romeo"}),
     year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1990}),
@@ -285,11 +285,11 @@ async def get_transit_chart(
 
 
 # ---------------------------------------------------------------------------
-# /charts/solar-return
+# /gen/solar-return
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/solar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
+@app.get("/gen/solar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_solar_return_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
     year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
@@ -347,11 +347,11 @@ async def get_solar_return_chart(
 
 
 # ---------------------------------------------------------------------------
-# /charts/lunar-return
+# /gen/lunar-return
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/lunar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
+@app.get("/gen/lunar-return", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_lunar_return_chart(
     name: str = Query(..., description="Name of the subject", json_schema_extra={"example": "Ada Lovelace"}),
     year: int = Query(..., description="Year of birth", json_schema_extra={"example": 1815}),
@@ -412,11 +412,11 @@ async def get_lunar_return_chart(
 
 
 # ---------------------------------------------------------------------------
-# /charts/composite
+# /gen/composite
 # ---------------------------------------------------------------------------
 
 
-@app.get("/charts/composite", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
+@app.get("/gen/composite", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}}, tags=["Charts"])
 async def get_composite_chart(
     name1: str = Query(..., description="Name of subject 1", json_schema_extra={"example": "Romeo"}),
     year1: int = Query(..., description="Year of birth 1", json_schema_extra={"example": 1990}),
