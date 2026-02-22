@@ -1,11 +1,10 @@
-import httpx
+from fastapi.testclient import TestClient
+from main import app
 import pytest
-
-BASE_URL = "http://127.0.0.1:8002"
 
 @pytest.fixture(scope="module")
 def client():
-    with httpx.Client(base_url=BASE_URL) as client:
+    with TestClient(app) as client:
         # Before tests, clear cache
         client.delete("/cache/clear")
         yield client
