@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
 from kerykeion import AstrologicalSubject, KerykeionChartSVG, AspectsFactory, AstrologicalSubjectFactory, to_context
 from kerykeion.planetary_return_factory import PlanetaryReturnFactory
+from kerykeion.composite_subject_factory import CompositeSubjectFactory
 from kerykeion.chart_data_factory import ChartDataFactory
 from kerykeion.charts.chart_drawer import ChartDrawer
 from fastapi import Query
@@ -967,6 +968,125 @@ async def get_lunar_return_chart(
     except Exception as e:
         logger.exception("Lunar return calculation failed")
         raise HTTPException(status_code=500, detail=f"Lunar return generation failed: {str(e)}")
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+@app.get("/charts/composite", response_class=Response, responses={200: {"content": {"image/svg+xml": {}}}})
+async def get_composite_chart(
+    name1: str = Query(..., description="Name of subject 1", example="Romeo"),
+    year1: int = Query(..., description="Year of birth 1", example=1990),
+    month1: int = Query(..., description="Month of birth 1", example=1),
+    day1: int = Query(..., description="Day of birth 1", example=1),
+    hour1: int = Query(..., description="Hour of birth 1", example=12),
+    minute1: int = Query(..., description="Minute of birth 1", example=0),
+    city1: str = Query(..., description="City of birth 1", example="Verona"),
+    lng1: float = Query(..., description="Longitude 1", example=10.99),
+    lat1: float = Query(..., description="Latitude 1", example=45.44),
+    tz_str1: str = Query(..., description="Timezone 1", example="Europe/Rome"),
+    nation1: str = Query(" ", description="Nation 1", example="Italy"),
+
+    name2: str = Query(..., description="Name of subject 2", example="Juliet"),
+    year2: int = Query(..., description="Year of birth 2", example=1990),
+    month2: int = Query(..., description="Month of birth 2", example=1),
+    day2: int = Query(..., description="Day of birth 2", example=1),
+    hour2: int = Query(..., description="Hour of birth 2", example=12),
+    minute2: int = Query(..., description="Minute of birth 2", example=0),
+    city2: str = Query(..., description="City of birth 2", example="Verona"),
+    lng2: float = Query(..., description="Longitude 2", example=10.99),
+    lat2: float = Query(..., description="Latitude 2", example=45.44),
+    tz_str2: str = Query(..., description="Timezone 2", example="Europe/Rome"),
+    nation2: str = Query(" ", description="Nation 2", example="Italy"),
+    
+    svg: bool = Query(False, description="Return SVG image if true, else return JSON", example=False)
+):
+    import os
+    import uuid
+    import shutil
+    from pathlib import Path
+    
+    # Create cache key
+    cache_data = {
+        "s1": {"n": name1, "y": year1, "m": month1, "d": day1, "h": hour1, "min": minute1, "c": city1, "ln": lng1, "la": lat1, "tz": tz_str1, "nat": nation1},
+        "s2": {"n": name2, "y": year2, "m": month2, "d": day2, "h": hour2, "min": minute2, "c": city2, "ln": lng2, "la": lat2, "tz": tz_str2, "nat": nation2},
+        "svg": svg,
+        "type": "composite"
+    }
+    cache_key = hashlib.md5(json.dumps(cache_data, sort_keys=True).encode()).hexdigest()
+    
+    if cache_key in cache:
+        cached_response = cache[cache_key]
+        update_cache_access(cache_key)
+        content_type = "SVG" if svg else "JSON"
+        logger.info(f"Cache HIT: {content_type} for composite {name1}-{name2} ({cache_key[:8]}...)")
+        return Response(content=cached_response["content"], media_type="image/svg+xml" if svg else "application/json")
+
+    base_output_dir = "./temp/output"
+    os.makedirs(base_output_dir, exist_ok=True)
+    
+    # Create subjects
+    s1 = AstrologicalSubjectFactory.from_birth_data(name1, year1, month1, day1, hour1, minute1, city1, nation1, lng=lng1, lat=lat1, tz_str=tz_str1, online=False)
+    s2 = AstrologicalSubjectFactory.from_birth_data(name2, year2, month2, day2, hour2, minute2, city2, nation2, lng=lng2, lat=lat2, tz_str=tz_str2, online=False)
+    
+    # Create Composite Subject
+    composite_factory = CompositeSubjectFactory(s1, s2)
+    composite_subject = composite_factory.get_midpoint_composite_subject_model()
+
+    # Generate chart data (which includes aspects)
+    chart_data = ChartDataFactory.create_composite_chart_data(composite_subject)
+
+    # Context
+    context_text = to_context(composite_subject)
+    
+    if not svg:
+        response_data = {
+            "composite_subject": composite_subject.model_dump(),
+            "aspects": [a.model_dump() for a in chart_data.aspects],
+            "context": context_text
+        }
+        r = json.dumps(response_data, indent=2)
+        logger.info(f"Cache MISS: JSON for composite {name1}-{name2}")
+        
+        content_size = sys.getsizeof(r)
+        cache[cache_key] = {"content": r, "media_type": "application/json", "last_used": time.time(), "size": content_size}
+        update_cache_access(cache_key)
+        evict_lru_items()
+        return Response(content=r, media_type="application/json")
+
+    temp_dir = os.path.join(base_output_dir, uuid.uuid4().hex)
+    os.makedirs(temp_dir, exist_ok=True)
+    try:
+        composite_chart = ChartDrawer(chart_data=chart_data, chart_language="ES")
+        filename = f"composite_{uuid.uuid4().hex}"
+        composite_chart.save_svg(output_path=Path(temp_dir), filename=filename)
+
+        svg_path = os.path.join(temp_dir, f"{filename}.svg")
+        with open(svg_path, "r", encoding="utf-8") as f:
+            svg_text = f.read()
+
+        # Embed CSS
+        css_path = "./themes/astral.css"
+        try:
+            with open(css_path, "r", encoding="utf-8") as f:
+                css_content = f.read()
+            if "<svg" in svg_text and "<style>" not in svg_text:
+                svg_start = svg_text.find("<svg")
+                svg_tag_end = svg_text.find(">", svg_start)
+                style_tag = f'\n<style type="text/css">\n<![CDATA[\n{css_content}\n]]>\n</style>\n'
+                svg_text = svg_text[:svg_tag_end + 1] + style_tag + svg_text[svg_tag_end + 1:]
+        except FileNotFoundError:
+            pass
+
+        logger.info(f"Cache MISS: SVG for composite {name1}-{name2}")
+        content_size = sys.getsizeof(svg_text)
+        cache[cache_key] = {"content": svg_text, "media_type": "image/svg+xml", "last_used": time.time(), "size": content_size}
+        update_cache_access(cache_key)
+        evict_lru_items()
+        return Response(content=svg_text, media_type="image/svg+xml")
+    except Exception as e:
+        logger.exception("Composite calculation failed")
+        raise HTTPException(status_code=500, detail=f"Composite generation failed: {str(e)}")
     finally:
         try:
             shutil.rmtree(temp_dir, ignore_errors=True)
