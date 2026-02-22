@@ -158,13 +158,47 @@ def test_solar_return_chart_svg_cache(client):
     res2 = client.get("/charts/solar-return", params=params)
     assert res2.status_code == 200
 
+def test_lunar_return_chart_json_cache(client):
+    params = {
+        "name": "Ada Lovelace", "year": 1815, "month": 12, "day": 10,
+        "hour": 6, "minute": 0, "city": "London", "lng": -0.1278,
+        "lat": 51.5074, "tz_str": "Europe/London", "nation": "UK",
+        "return_year": 2024, "return_month": 1, "return_day": 1, "svg": False
+    }
+
+    # First request should be a MISS, status 200
+    res1 = client.get("/charts/lunar-return", params=params)
+    assert res1.status_code == 200
+    assert "application/json" in res1.headers["content-type"]
+    
+    # Second request should be a HIT, status 200
+    res2 = client.get("/charts/lunar-return", params=params)
+    assert res2.status_code == 200
+
+def test_lunar_return_chart_svg_cache(client):
+    params = {
+        "name": "Ada Lovelace", "year": 1815, "month": 12, "day": 10,
+        "hour": 6, "minute": 0, "city": "London", "lng": -0.1278,
+        "lat": 51.5074, "tz_str": "Europe/London", "nation": "UK",
+        "return_year": 2024, "return_month": 1, "return_day": 1, "svg": True
+    }
+
+    # First request should be a MISS, status 200
+    res1 = client.get("/charts/lunar-return", params=params)
+    assert res1.status_code == 200
+    assert "image/svg+xml" in res1.headers["content-type"]
+    
+    # Second request should be a HIT, status 200
+    res2 = client.get("/charts/lunar-return", params=params)
+    assert res2.status_code == 200
+
 def test_cache_endpoints(client):
     res = client.get("/cache/info")
     assert res.status_code == 200
     data = res.json()
     assert "cache_items" in data
-    # We should have exactly 8 unique requests (JSON/SVG for Birth, Synastry, Transit, Solar Return)
-    assert data["cache_items"] == 8
+    # We should have exactly 10 unique requests (JSON/SVG for Birth, Synastry, Transit, Solar Return, Lunar Return)
+    assert data["cache_items"] == 10
 
     res = client.delete("/cache/clear")
     assert res.status_code == 200
