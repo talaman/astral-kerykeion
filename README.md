@@ -171,7 +171,7 @@ kubectl apply -f kubernetes\service.yaml
 
 - Source entry: app/main.py
 - Requirements: app/requirements.txt
-- Local testing suite: `python -m pytest tests` (expects server on http://localhost:8002)
+- Local testing suite: `python -m pytest tests`
 - Swagger UI: /docs | ReDoc: /redoc
 
 ## Acknowledgements
