@@ -7,7 +7,6 @@ import uuid
 from pathlib import Path
 
 from kerykeion import AstrologicalSubjectFactory
-from kerykeion.chart_data_factory import ChartDataFactory
 from kerykeion.charts.chart_drawer import ChartDrawer
 
 logger = logging.getLogger(__name__)
