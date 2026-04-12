@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, HTTPException, Response, Query
+from fastapi import FastAPI, HTTPException, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from kerykeion import AspectsFactory, to_context
 from kerykeion.planetary_return_factory import PlanetaryReturnFactory
