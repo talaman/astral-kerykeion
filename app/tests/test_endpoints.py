@@ -232,13 +232,36 @@ def test_composite_chart_svg_cache(client):
     assert res2.status_code == 200
 
 def test_cache_endpoints(client):
+    res = client.delete("/cache/clear")
+    assert res.status_code == 200
+
     res = client.get("/cache/info")
     assert res.status_code == 200
     data = res.json()
     assert "cache_items" in data
-    # We should have exactly 12 unique requests (JSON/SVG for Birth, Synastry, Transit, Solar Return, Lunar Return, Composite)
-    assert data["cache_items"] == 12
+    assert data["cache_items"] == 0
 
+    params = {
+        "name1": "Romeo", "year1": 1990, "month1": 1, "day1": 1,
+        "hour1": 12, "minute1": 0, "city1": "London", "lng1": -0.1278,
+        "lat1": 51.5074, "tz_str1": "Europe/London", "nation1": "UK",
+        "name2": "Juliet", "year2": 1995, "month2": 2, "day2": 14,
+        "hour2": 12, "minute2": 0, "city2": "Paris", "lng2": 2.3522,
+        "lat2": 48.8566, "tz_str2": "Europe/Paris", "nation2": "FR",
+        "svg": False
+    }
+
+    res = client.get("/gen/composite", params=params)
+    assert res.status_code == 200
+
+    res = client.get("/gen/composite", params=params)
+    assert res.status_code == 200
+
+    res = client.get("/cache/info")
+    assert res.status_code == 200
+    data = res.json()
+    assert "cache_items" in data
+    assert data["cache_items"] == 1
     res = client.delete("/cache/clear")
     assert res.status_code == 200
 
