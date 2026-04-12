@@ -62,7 +62,7 @@ Open http://localhost:8000/docs
 ## API
 
 ### Natal Chart
-- **Path**: `/charts/birth` (alias: `/gen`)
+- **Path**: `/gen` (alias: `/gen/birth`)
 - **Method**: GET
 - **Returns**: `application/json` or `image/svg+xml` depending on the `svg` flag.
 
