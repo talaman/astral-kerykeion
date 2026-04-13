@@ -11,7 +11,7 @@ from kerykeion.charts.chart_drawer import ChartDrawer
 
 logger = logging.getLogger(__name__)
 
-BASE_OUTPUT_DIR = "./temp/output"
+BASE_OUTPUT_DIR = os.getenv("CHART_OUTPUT_DIR", "/tmp/astral-kerykeion/output")
 CSS_PATH = "./themes/astral.css"
 
 

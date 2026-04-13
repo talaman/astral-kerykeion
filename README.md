@@ -22,7 +22,7 @@ OpenAPI docs are available at /docs when the server is running.
 - Built-in CORS enabled for all origins
 - In-memory cache with configurable max items and max size (MB)
 - Simple CSS theming for charts (see app/themes/astral.css)
-- Dockerized runtime (port 80 inside the container)
+- Dockerized runtime (port 8000 inside the container)
 - Kubernetes deployment and service manifests included
 
 ## Quickstart
@@ -50,11 +50,11 @@ uv run python -m pytest tests -v
 
 ### Option B — Docker
 
-Build and run the container (the app listens on port 80 inside the container):
+Build and run the container (the app listens on port 8000 inside the container):
 
 ```bat
 docker build -t astral-kerykeion .
-docker run --rm -p 8000:80 astral-kerykeion
+docker run --rm -p 8000:8000 astral-kerykeion
 ```
 
 Open http://localhost:8000/docs
@@ -151,7 +151,7 @@ If the CSS file is missing, SVGs will still be returned without extra styling.
 
 Manifests are provided under kubernetes/:
 
-- kubernetes/deployment.yaml — app Deployment (container listens on 80)
+- kubernetes/deployment.yaml — app Deployment (container listens on 8000)
 - kubernetes/service.yaml — ClusterIP Service on port 80
 
 Notes:
