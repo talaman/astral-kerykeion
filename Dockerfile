@@ -4,7 +4,10 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
 	TMPDIR=/tmp \
-	CHART_OUTPUT_DIR=/tmp/astral-kerykeion/output
+	CHART_OUTPUT_DIR=/tmp/astral-kerykeion/output \
+	HOME=/tmp \
+	XDG_CACHE_HOME=/tmp \
+	XDG_CONFIG_HOME=/tmp
 
 WORKDIR /app
 
