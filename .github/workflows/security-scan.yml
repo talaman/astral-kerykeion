@@ -26,13 +26,37 @@ jobs:
           restore-keys: |
             trivy-db-${{ runner.os }}-
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy dependency scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: app
+          cache-dir: .trivy-cache
+          scanners: vuln
+          ignore-unfixed: true
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+
+      - name: Run Trivy misconfiguration scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: config
+          scan-ref: .
+          cache-dir: .trivy-cache
+          hide-progress: true
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          skip-setup-trivy: true
+
+      - name: Run Trivy secret scan
         uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: fs
           scan-ref: .
           cache-dir: .trivy-cache
-          ignore-unfixed: true
+          scanners: secret
+          hide-progress: true
           format: table
-          exit-code: '1'
-          severity: HIGH,CRITICAL
+          skip-setup-trivy: true

@@ -1,6 +1,6 @@
-fastapi 
-uvicorn
-kerykeion>=5.7.0
-gunicorn
-pytest
-httpx
+fastapi==0.135.3
+uvicorn==0.44.0
+kerykeion==5.12.7
+gunicorn==25.3.0
+pytest==9.0.3
+httpx==0.28.1
