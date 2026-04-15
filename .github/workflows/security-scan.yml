@@ -1,0 +1,62 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 1'
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: .trivy-cache
+          key: trivy-db-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            trivy-db-${{ runner.os }}-
+
+      - name: Run Trivy dependency scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: app
+          cache-dir: .trivy-cache
+          scanners: vuln
+          ignore-unfixed: true
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+
+      - name: Run Trivy misconfiguration scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: config
+          scan-ref: .
+          cache-dir: .trivy-cache
+          hide-progress: true
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          skip-setup-trivy: true
+
+      - name: Run Trivy secret scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          cache-dir: .trivy-cache
+          scanners: secret
+          hide-progress: true
+          format: table
+          skip-setup-trivy: true

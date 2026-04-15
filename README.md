@@ -8,7 +8,7 @@
 Astral Kerykeion is a lightweight HTTP API that:
 
 - Computes astrological data for a person given birth details
-- Generates beautiful SVG natal charts (with theming support)
+- Generates beautiful SVG natal, synastry, and transit charts (with theming support)
 - Caches responses in-memory with LRU-style eviction
 - Ships with Docker and Kubernetes manifests for easy deployment
 
@@ -22,78 +22,91 @@ OpenAPI docs are available at /docs when the server is running.
 - Built-in CORS enabled for all origins
 - In-memory cache with configurable max items and max size (MB)
 - Simple CSS theming for charts (see app/themes/astral.css)
-- Dockerized runtime (port 80 inside the container)
+- Dockerized runtime (port 8000 inside the container)
 - Kubernetes deployment and service manifests included
 
 ## Quickstart
 
 ### Option A — Local (Windows)
 
-Prereqs: Python 3.11+
+Prereqs: [uv](https://docs.astral.sh/uv/) installed.
 
 ```bat
 cd app
-python -m venv .venv
+uv venv
+# On Windows:
 .venv\Scripts\activate
-pip install --upgrade pip
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8002
 ```
 
 Now open http://localhost:8002/docs
 
-To run the quick cache test (with the server running on port 8002):
+To run the testing suite:
 
 ```bat
-python ..\test_cache.py
+uv run python -m pytest tests -v
 ```
 
 ### Option B — Docker
 
-Build and run the container (the app listens on port 80 inside the container):
+Build and run the container (the app listens on port 8000 inside the container):
 
 ```bat
 docker build -t astral-kerykeion .
-docker run --rm -p 8000:80 astral-kerykeion
+docker run --rm -p 8000:8000 astral-kerykeion
 ```
 
 Open http://localhost:8000/docs
 
 ## API
 
-### GET /gen
-
-Produces either application/json or image/svg+xml depending on the svg flag.
+### Natal Chart
+- **Path**: `/gen` (alias: `/gen/birth`)
+- **Method**: GET
+- **Returns**: `application/json` or `image/svg+xml` depending on the `svg` flag.
 
 Query parameters:
+- `name` (string) — subject name
+- `year` (int) — year of birth
+- `month` (int) — month of birth (1-12)
+- `day` (int) — day of birth (1-31)
+- `hour` (int) — hour (0-23)
+- `minute` (int) — minute (0-59)
+- `city` (string) — city name
+- `lng` (float) — longitude
+- `lat` (float) — latitude
+- `tz_str` (string) — timezone, e.g. `Europe/London`
+- `svg` (bool, default false) — when true returns SVG; otherwise JSON
 
-- name (string) — subject name
-- year (int) — year of birth
-- month (int) — month of birth (1-12)
-- day (int) — day of birth (1-31)
-- hour (int) — hour (0-23)
-- minute (int) — minute (0-59)
-- city (string) — city name
-- lng (float) — longitude
-- lat (float) — latitude
-- tz_str (string) — timezone, e.g. Europe/London
-- svg (bool, default false) — when true returns SVG; otherwise JSON
+### Synastry Chart
+- **Path**: `/charts/synastry`
+- **Method**: GET
+- **Description**: Compares two charts.
+- **Parameters**: `name1`, `year1`, `month1`, `day1`, `hour1`, `minute1`, `city1`, `lng1`, `lat1`, `tz_str1` AND same for person 2 (e.g. `name2`, `year2`, ...).
 
-Example (JSON):
+### Transit Chart
+- **Path**: `/charts/transit`
+- **Method**: GET
+- **Description**: Composes a transit chart over a natal chart.
+- **Parameters**: 
+  - Natal: `name`, `year`, `month`, `day`, `hour`, `minute`, `city`, `lng`, `lat`, `tz_str`
+  - Transit reference: `t_year`, `t_month`, `t_day`, `t_hour`, `t_minute`, `t_city`, `t_lng`, `t_lat`, `t_tz_str`
 
+### Examples
+
+**Birth Chart (JSON):**
 ```
-GET /gen?name=Ada%20Lovelace&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe%2FLondon
+GET /charts/birth?name=Ada%20Lovelace&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe%2FLondon
 ```
 
-Example (SVG):
-
+**Transit Chart (SVG):**
 ```
-GET /gen?name=Ada%20Lovelace&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe%2FLondon&svg=true
+GET /charts/transit?name=Ada&year=1815&month=12&day=10&hour=6&minute=0&city=London&lng=-0.1278&lat=51.5074&tz_str=Europe/London&t_year=2024&t_month=1&t_day=1&t_hour=12&t_minute=0&t_city=London&t_lng=-0.1278&t_lat=51.5074&t_tz_str=Europe/London&svg=true
 ```
 
 Response:
-
-- 200 OK — application/json or image/svg+xml
+- 200 OK — `application/json` or `image/svg+xml`
 - 400/422 — validation error for bad or missing parameters
 - 500 — chart generation failure (rare)
 
@@ -138,7 +151,7 @@ If the CSS file is missing, SVGs will still be returned without extra styling.
 
 Manifests are provided under kubernetes/:
 
-- kubernetes/deployment.yaml — app Deployment (container listens on 80)
+- kubernetes/deployment.yaml — app Deployment (container listens on 8000)
 - kubernetes/service.yaml — ClusterIP Service on port 80
 
 Notes:
@@ -158,7 +171,7 @@ kubectl apply -f kubernetes\service.yaml
 
 - Source entry: app/main.py
 - Requirements: app/requirements.txt
-- Local testing script: test_cache.py (expects server on http://localhost:8002)
+- Local testing suite: `python -m pytest tests`
 - Swagger UI: /docs | ReDoc: /redoc
 
 ## Acknowledgements
