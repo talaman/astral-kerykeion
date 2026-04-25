@@ -1,3 +1,7 @@
+import os
+
+os.environ["ENABLE_ADMIN_ENDPOINTS"] = "true"
+
 from fastapi.testclient import TestClient
 from main import app
 import pytest
@@ -267,3 +271,26 @@ def test_cache_endpoints(client):
 
     res = client.get("/cache/info")
     assert res.json()["cache_items"] == 0
+
+
+def test_cache_details_hidden_by_default(client):
+    res = client.get("/cache/info")
+    assert res.status_code == 200
+    data = res.json()
+    assert "cached_keys" not in data
+    assert "access_order" not in data
+
+
+def test_cache_endpoints_disabled_when_admin_is_off(client, monkeypatch):
+    monkeypatch.setenv("ENABLE_ADMIN_ENDPOINTS", "false")
+
+    res = client.get("/cache/info")
+    assert res.status_code == 404
+
+    res = client.delete("/cache/clear")
+    assert res.status_code == 404
+
+    res = client.put("/cache/config", params={"max_items": 10})
+    assert res.status_code == 404
+
+    monkeypatch.setenv("ENABLE_ADMIN_ENDPOINTS", "true")

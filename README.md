@@ -14,16 +14,16 @@ Astral Kerykeion is a lightweight HTTP API that:
 
 Technology: FastAPI, Uvicorn, and [kerykeion](https://pypi.org/project/kerykeion/).
 
-OpenAPI docs are available at /docs when the server is running.
+OpenAPI docs are available at `/docs` when the server is running. You can disable them with `ENABLE_API_DOCS=false` if needed.
 
 ## Features
 
 - JSON and SVG outputs from a single endpoint
-- Built-in CORS enabled for all origins
+- CORS origins are configurable by environment variable
 - In-memory cache with configurable max items and max size (MB)
 - Simple CSS theming for charts (see app/themes/astral.css)
 - Dockerized runtime (port 8000 inside the container)
-- Kubernetes deployment and service manifests included
+- Generic Kubernetes deployment and service examples included
 
 ## Quickstart
 
@@ -112,7 +112,9 @@ Response:
 
 ### Cache endpoints
 
-The service maintains an in-memory cache with LRU-style eviction. Defaults:
+The service maintains an in-memory cache with LRU-style eviction. Cache administration is disabled by default and must be enabled explicitly with `ENABLE_ADMIN_ENDPOINTS=true`.
+
+Defaults:
 
 - Max items: 700
 - Max size: 100 MB
@@ -149,30 +151,32 @@ If the CSS file is missing, SVGs will still be returned without extra styling.
 
 ## Kubernetes
 
-Manifests are provided under kubernetes/:
+Deployment manifests have been removed from the public repository.
 
-- kubernetes/deployment.yaml — app Deployment (container listens on 8000)
-- kubernetes/service.yaml — ClusterIP Service on port 80
-
-Notes:
-
-- Update the image in the Deployment to your registry (or publish to GHCR as shown)
-- The Service is ClusterIP; expose via Ingress or change to LoadBalancer for direct access
-- An imagePullSecret for GitHub Container Registry (GHCR) is referenced; configure or remove accordingly
-
-Apply manifests:
-
-```bat
-kubectl apply -f kubernetes\deployment.yaml
-kubectl apply -f kubernetes\service.yaml
-```
+The actual deployment automation and Kubernetes manifests for this service now live in the private `astral-kerykeion-deploy` repository.
 
 ## Development
 
 - Source entry: app/main.py
 - Requirements: app/requirements.txt
 - Local testing suite: `python -m pytest tests`
-- Swagger UI: /docs | ReDoc: /redoc
+- Public CI validates tests and container build only
+- Swagger UI: enabled by default at `/docs`; disable with `ENABLE_API_DOCS=false`
+
+## Deployment Strategy
+
+Recommended split for a public repo:
+
+- Public repo: source code, tests, generic Dockerfile, CI validation
+- Private deployment system: registry login, cluster credentials, environment-specific manifests, rollout automation
+
+Recommended flow:
+
+1. Tag or pin a commit in this public repository.
+2. Trigger the private deployment workflow from `astral-kerykeion-deploy` with that tag or commit SHA.
+3. The private workflow checks out this repository, runs tests with `uv`, builds and pushes the image, then deploys using the private manifests stored there.
+
+This keeps the service deployable without publishing your real registry, namespaces, provider setup, or cluster integration details.
 
 ## Acknowledgements
 
