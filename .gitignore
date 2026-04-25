@@ -1,3 +1,14 @@
 *.pyc
+__pycache__/
+.pytest_cache/
+.venv/
+app/__pycache__/
+app/.pytest_cache/
+app/.venv/
+app/temp/
+app/temp_transit/
+*.sqlite
+*.sqlite3
+*.svg
 app/cache/kerykeion_geonames_cache.sqlite
 app/test.svg
