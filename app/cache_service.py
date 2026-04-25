@@ -62,15 +62,17 @@ class CacheService:
     def size_mb(self) -> float:
         return sum(item["size"] for item in self._store.values()) / (1024 * 1024)
 
-    def info(self) -> dict:
-        return {
+    def info(self, include_details: bool = False) -> dict:
+        info = {
             "cache_items": len(self._store),
             "cache_size_mb": round(self.size_mb, 2),
             "max_items": self.max_items,
             "max_size_mb": self.max_size_mb,
-            "cached_keys": list(self._store.keys()),
-            "access_order": list(self._access_order),
         }
+        if include_details:
+            info["cached_keys"] = list(self._store.keys())
+            info["access_order"] = list(self._access_order)
+        return info
 
     def update_config(self, max_items: int | None, max_size_mb: float | None) -> dict:
         if max_items is not None and max_items > 0:

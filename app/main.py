@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, HTTPException, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from kerykeion import AspectsFactory, to_context
@@ -30,14 +32,43 @@ openapi_tags = [
     },
 ]
 
-app = FastAPI(openapi_tags=openapi_tags)
+
+def _flag_enabled(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _cors_origins() -> list[str]:
+    raw_value = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    if not raw_value.strip():
+        return []
+    return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+
+
+def _require_admin_endpoints_enabled() -> None:
+    if not _flag_enabled("ENABLE_ADMIN_ENDPOINTS", default=False):
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+docs_enabled = _flag_enabled("ENABLE_API_DOCS", default=True)
+configured_cors_origins = _cors_origins()
+allow_all_cors_origins = configured_cors_origins == ["*"]
+
+app = FastAPI(
+    openapi_tags=openapi_tags,
+    docs_url="/docs" if docs_enabled else None,
+    redoc_url="/redoc" if docs_enabled else None,
+    openapi_url="/openapi.json" if docs_enabled else None,
+)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=configured_cors_origins,
+    allow_credentials=_flag_enabled("CORS_ALLOW_CREDENTIALS", default=False) and not allow_all_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -87,17 +118,20 @@ async def root():
 
 @app.get("/cache/info", tags=["Cache"])
 async def cache_info():
-    return cache.info()
+    _require_admin_endpoints_enabled()
+    return cache.info(include_details=_flag_enabled("ENABLE_ADMIN_CACHE_DETAILS", default=False))
 
 
 @app.delete("/cache/clear", tags=["Cache"])
 async def clear_cache():
+    _require_admin_endpoints_enabled()
     cache.clear()
     return {"message": "Cache cleared successfully"}
 
 
 @app.put("/cache/config", tags=["Cache"])
 async def update_cache_config(max_items: int = None, max_size_mb: float = None):
+    _require_admin_endpoints_enabled()
     return cache.update_config(max_items, max_size_mb)
 
 
