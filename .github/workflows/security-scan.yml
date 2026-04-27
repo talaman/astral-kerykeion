@@ -27,7 +27,7 @@ jobs:
             trivy-db-${{ runner.os }}-
 
       - name: Run Trivy dependency scan
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: app
@@ -39,7 +39,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       - name: Run Trivy misconfiguration scan
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: .
@@ -51,7 +51,7 @@ jobs:
           skip-setup-trivy: true
 
       - name: Run Trivy secret scan
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
