@@ -1,6 +1,6 @@
 fastapi==0.136.0
 uvicorn==0.46.0
-kerykeion==5.12.7
+kerykeion==5.12.8
 gunicorn==25.3.0
 pytest==9.0.3
 httpx==0.28.1
