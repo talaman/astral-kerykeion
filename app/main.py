@@ -116,6 +116,11 @@ async def root():
     return {"message": "Hello World"}
 
 
+@app.get("/healthz", tags=["General"])
+async def healthz():
+    return {"status": "ok"}
+
+
 @app.get("/cache/info", tags=["Cache"])
 async def cache_info():
     _require_admin_endpoints_enabled()
