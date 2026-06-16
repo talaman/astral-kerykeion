@@ -15,6 +15,12 @@ def client():
         # After tests, clear cache
         client.delete("/cache/clear")
 
+
+def test_healthz(client):
+    res = client.get("/healthz")
+    assert res.status_code == 200
+    assert res.json() == {"status": "ok"}
+
 def test_birth_chart_json_cache(client):
     params = {
         "name": "Ada Lovelace", "year": 1815, "month": 12, "day": 10,
