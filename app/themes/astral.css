@@ -9,7 +9,7 @@
     --kerykeion-color-base-content: #333c4d;
     /* --kerykeion-color-primary: #65cc8a; */
     /* --kerykeion-color-primary: #ffbe00; */
-    --kerykeion-color-primary: #FFD700;
+    --kerykeion-color-primary: #4c9868;
     --kerykeion-color-secondary: #367bfb;
     --kerykeion-color-accent: #f68067;
     --kerykeion-color-neutral: #333c4d;
@@ -18,7 +18,7 @@
     --kerykeion-color-info-content: #000000;
     --kerykeion-color-success: #00a96e;
     /* --kerykeion-color-warning: #ffbe00; */
-    --kerykeion-color-warning: #65cc8a;
+    --kerykeion-color-warning: #947000;
     --kerykeion-color-error: #ff5761;
 
     /* Astral Guru Colors */
@@ -70,6 +70,20 @@
     --kerykeion-chart-color-zodiac-bg-9: var(--kerykeion-color-base-300);
     --kerykeion-chart-color-zodiac-bg-10: var(--kerykeion-color-base-200);
     --kerykeion-chart-color-zodiac-bg-11: var(--kerykeion-color-base-300);
+
+    --kerykeion-modern-zodiac-bg-0: var(--kerykeion-chart-color-zodiac-bg-0);
+    --kerykeion-modern-zodiac-bg-1: var(--kerykeion-chart-color-zodiac-bg-1);
+    --kerykeion-modern-zodiac-bg-2: var(--kerykeion-chart-color-zodiac-bg-2);
+    --kerykeion-modern-zodiac-bg-3: var(--kerykeion-chart-color-zodiac-bg-3);
+    --kerykeion-modern-zodiac-bg-4: var(--kerykeion-chart-color-zodiac-bg-4);
+    --kerykeion-modern-zodiac-bg-5: var(--kerykeion-chart-color-zodiac-bg-5);
+    --kerykeion-modern-zodiac-bg-6: var(--kerykeion-chart-color-zodiac-bg-6);
+    --kerykeion-modern-zodiac-bg-7: var(--kerykeion-chart-color-zodiac-bg-7);
+    --kerykeion-modern-zodiac-bg-8: var(--kerykeion-chart-color-zodiac-bg-8);
+    --kerykeion-modern-zodiac-bg-9: var(--kerykeion-chart-color-zodiac-bg-9);
+    --kerykeion-modern-zodiac-bg-10: var(--kerykeion-chart-color-zodiac-bg-10);
+    --kerykeion-modern-zodiac-bg-11: var(--kerykeion-chart-color-zodiac-bg-11);
+    --kerykeion-modern-zodiac-bg-opacity: 1;
 
     /* Zodiac Sign Rings */
     --kerykeion-chart-color-zodiac-radix-ring-0: var(--kerykeion-color-neutral);
@@ -141,4 +155,19 @@
 
     /* Houses Numbers */
     --kerykeion-chart-color-house-number: var(--kerykeion-color-base-content);
+}
+
+[*|node="ZodiacBackgrounds"] {
+    --kerykeion-chart-color-zodiac-icon-0: #7c190d;
+    --kerykeion-chart-color-zodiac-icon-4: #7c190d;
+    --kerykeion-chart-color-zodiac-icon-8: #7c190d;
+    --kerykeion-chart-color-zodiac-icon-3: #c9edff;
+    --kerykeion-chart-color-zodiac-icon-7: #c9edff;
+    --kerykeion-chart-color-zodiac-icon-11: #c9edff;
+    --kerykeion-chart-color-zodiac-icon-2: #185c34;
+    --kerykeion-chart-color-zodiac-icon-6: #185c34;
+    --kerykeion-chart-color-zodiac-icon-10: #185c34;
+    --kerykeion-chart-color-zodiac-icon-1: #ffe08a;
+    --kerykeion-chart-color-zodiac-icon-5: #ffe08a;
+    --kerykeion-chart-color-zodiac-icon-9: #ffe08a;
 }

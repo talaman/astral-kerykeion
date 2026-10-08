@@ -329,7 +329,29 @@ def test_v6_json_and_svg_use_same_aspects(client, monkeypatch, chart_type):
     monkeypatch.setattr(chart_api, "generate_svg", capture_chart)
     svg_response = client.get(f"/gen/{chart_type}", params={**params, "svg": True})
     assert svg_response.status_code == 200
-    assert ElementTree.fromstring(svg_response.text).tag == "{http://www.w3.org/2000/svg}svg"
+    svg_root = ElementTree.fromstring(svg_response.text)
+    assert svg_root.tag == "{http://www.w3.org/2000/svg}svg"
+    svg_attributes = " ".join(
+        value for element in svg_root.iter() for value in element.attrib.values()
+    )
+    for sign_index in range(12):
+        assert f"var(--kerykeion-modern-zodiac-bg-{sign_index})" in svg_attributes
+        assert (
+            f"--kerykeion-modern-zodiac-bg-{sign_index}: "
+            f"var(--kerykeion-chart-color-zodiac-bg-{sign_index});"
+        ) in svg_response.text
+    assert "--kerykeion-modern-zodiac-bg-opacity: 1;" in svg_response.text
+    assert "--kerykeion-color-primary: #65cc8a;" in svg_response.text
+    assert "--kerykeion-color-warning: #947000;" in svg_response.text
+    assert '[*|node="ZodiacBackgrounds"] {' in svg_response.text
+    for sign_index in (0, 4, 8):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #7c190d;" in svg_response.text
+    for sign_index in (3, 7, 11):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #c9edff;" in svg_response.text
+    for sign_index in (2, 6, 10):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #185c34;" in svg_response.text
+    for sign_index in (1, 5, 9):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #ffe08a;" in svg_response.text
     assert len(rendered_charts) == 1
     chart_data = rendered_charts[0]
     assert json_response.json()["aspects"] == [aspect.model_dump() for aspect in chart_data.aspects]
