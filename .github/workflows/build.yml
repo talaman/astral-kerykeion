@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      LIBEPHEMERIS_PRECISION: medium
     steps:
       - uses: actions/checkout@v6
       - name: Install uv
@@ -16,12 +18,13 @@ jobs:
         with:
           enable-cache: true
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.12
       - name: Install dependencies
         run: |
           cd app
-          uv venv .venv
+          uv venv .venv --python 3.12
           uv pip install -r requirements.txt
+          uv run python -c 'from libephemeris.download import download_leb2_for_tier; paths = download_leb2_for_tier("medium", groups=["core", "asteroids"], show_progress=False); assert len(paths) == 2'
       - name: Run tests
         run: |
           cd app

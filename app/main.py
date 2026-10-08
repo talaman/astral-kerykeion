@@ -2,10 +2,12 @@ import os
 
 from fastapi import FastAPI, HTTPException, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
-from kerykeion import AspectsFactory, to_context
-from kerykeion.planetary_return_factory import PlanetaryReturnFactory
-from kerykeion.composite_subject_factory import CompositeSubjectFactory
-from kerykeion.chart_data_factory import ChartDataFactory
+from kerykeion import (
+    ChartDataFactory,
+    CompositeSubjectFactory,
+    PlanetaryReturnFactory,
+    to_context,
+)
 
 import json
 import logging
@@ -172,17 +174,16 @@ async def get_chart(
         return cached
 
     subject = create_subject(name, year, month, day, hour, minute, city, nation, lng, lat, tz_str)
-    aspects_data = AspectsFactory.single_chart_aspects(subject)
+    chart_data = ChartDataFactory.create_natal_chart_data(subject)
     context_text = to_context(subject)
 
     subject_dict = subject.model_dump()
-    subject_dict["aspects"] = [a.model_dump() for a in aspects_data.aspects]
+    subject_dict["aspects"] = [a.model_dump() for a in chart_data.aspects]
     subject_dict["context"] = context_text
 
     if not svg:
         return _json_response(subject_dict, cache_key)
 
-    chart_data = ChartDataFactory.create_natal_chart_data(subject)
     return _svg_response(chart_data, "birth", cache_key)
 
 
@@ -234,7 +235,7 @@ async def get_synastry_chart(
     subject1 = create_subject(name1, year1, month1, day1, hour1, minute1, city1, nation1, lng1, lat1, tz_str1)
     subject2 = create_subject(name2, year2, month2, day2, hour2, minute2, city2, nation2, lng2, lat2, tz_str2)
 
-    aspects_data = AspectsFactory.synastry_aspects(subject1, subject2)
+    chart_data = ChartDataFactory.create_synastry_chart_data(subject1, subject2)
     context_text = (
         f"--- Synastry Context ---\n\n"
         f"# {name1}'s Chart\n{to_context(subject1)}\n\n"
@@ -244,14 +245,13 @@ async def get_synastry_chart(
     response_data = {
         "subject1": subject1.model_dump(),
         "subject2": subject2.model_dump(),
-        "aspects": [a.model_dump() for a in aspects_data.aspects],
+        "aspects": [a.model_dump() for a in chart_data.aspects],
         "context": context_text,
     }
 
     if not svg:
         return _json_response(response_data, cache_key)
 
-    chart_data = ChartDataFactory.create_synastry_chart_data(subject1, subject2)
     return _svg_response(chart_data, "synastry", cache_key)
 
 
@@ -302,7 +302,7 @@ async def get_transit_chart(
     natal_subject = create_subject(name, year, month, day, hour, minute, city, nation, lng, lat, tz_str)
     transit_subject = create_subject("Transit", t_year, t_month, t_day, t_hour, t_minute, t_city, t_nation, t_lng, t_lat, t_tz_str)
 
-    aspects_data = AspectsFactory.synastry_aspects(natal_subject, transit_subject)
+    chart_data = ChartDataFactory.create_transit_chart_data(natal_subject, transit_subject)
     context_text = (
         f"--- Transit Context ---\n\n"
         f"# {name}'s Natal Chart\n{to_context(natal_subject)}\n\n"
@@ -312,14 +312,13 @@ async def get_transit_chart(
     response_data = {
         "natal": natal_subject.model_dump(),
         "transit": transit_subject.model_dump(),
-        "aspects": [a.model_dump() for a in aspects_data.aspects],
+        "aspects": [a.model_dump() for a in chart_data.aspects],
         "context": context_text,
     }
 
     if not svg:
         return _json_response(response_data, cache_key)
 
-    chart_data = ChartDataFactory.create_transit_chart_data(natal_subject, transit_subject)
     return _svg_response(chart_data, "transit", cache_key)
 
 
@@ -360,7 +359,7 @@ async def get_solar_return_chart(
     return_factory = PlanetaryReturnFactory(natal_subject, lng=lng, lat=lat, tz_str=tz_str, online=False)
     solar_return_subject = return_factory.next_return_from_date(return_year, 1, 1, return_type="Solar")
 
-    aspects_data = AspectsFactory.synastry_aspects(natal_subject, solar_return_subject)
+    chart_data = ChartDataFactory.create_return_chart_data(natal_subject, solar_return_subject)
     context_text = (
         f"--- Solar Return Context ({return_year}) ---\n\n"
         f"# Natal Chart\n{to_context(natal_subject)}\n\n"
@@ -370,7 +369,7 @@ async def get_solar_return_chart(
     response_data = {
         "natal": natal_subject.model_dump(),
         "solar_return": solar_return_subject.model_dump(),
-        "aspects": [a.model_dump() for a in aspects_data.aspects],
+        "aspects": [a.model_dump() for a in chart_data.aspects],
         "context": context_text,
     }
 
@@ -378,7 +377,6 @@ async def get_solar_return_chart(
         return _json_response(response_data, cache_key)
 
     try:
-        chart_data = ChartDataFactory.create_return_chart_data(natal_subject, solar_return_subject)
         return _svg_response(chart_data, "solar_return", cache_key)
     except Exception as e:
         logger.exception("Solar return calculation failed")
@@ -425,7 +423,7 @@ async def get_lunar_return_chart(
     return_factory = PlanetaryReturnFactory(natal_subject, lng=lng, lat=lat, tz_str=tz_str, online=False)
     lunar_return_subject = return_factory.next_return_from_date(return_year, return_month, return_day, return_type="Lunar")
 
-    aspects_data = AspectsFactory.synastry_aspects(natal_subject, lunar_return_subject)
+    chart_data = ChartDataFactory.create_return_chart_data(natal_subject, lunar_return_subject)
     context_text = (
         f"--- Lunar Return Context (Search from {return_year}-{return_month}-{return_day}) ---\n\n"
         f"# Natal Chart\n{to_context(natal_subject)}\n\n"
@@ -435,7 +433,7 @@ async def get_lunar_return_chart(
     response_data = {
         "natal": natal_subject.model_dump(),
         "lunar_return": lunar_return_subject.model_dump(),
-        "aspects": [a.model_dump() for a in aspects_data.aspects],
+        "aspects": [a.model_dump() for a in chart_data.aspects],
         "context": context_text,
     }
 
@@ -443,7 +441,6 @@ async def get_lunar_return_chart(
         return _json_response(response_data, cache_key)
 
     try:
-        chart_data = ChartDataFactory.create_return_chart_data(natal_subject, lunar_return_subject)
         return _svg_response(chart_data, "lunar_return", cache_key)
     except Exception as e:
         logger.exception("Lunar return calculation failed")
