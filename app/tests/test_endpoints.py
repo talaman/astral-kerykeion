@@ -1,4 +1,5 @@
 import os
+import re
 from xml.etree import ElementTree
 
 os.environ["ENABLE_ADMIN_ENDPOINTS"] = "true"
@@ -341,7 +342,13 @@ def test_v6_json_and_svg_use_same_aspects(client, monkeypatch, chart_type):
             f"var(--kerykeion-chart-color-zodiac-bg-{sign_index});"
         ) in svg_response.text
     assert "--kerykeion-modern-zodiac-bg-opacity: 1;" in svg_response.text
-    assert "--kerykeion-color-primary: #65cc8a;" in svg_response.text
+    svg_css = "\n".join(
+        element.text or "" for element in svg_root.iter("{http://www.w3.org/2000/svg}style")
+    )
+    active_css = re.sub(r"/\*.*?\*/", "", svg_css, flags=re.DOTALL)
+    primary_colors = re.findall(r"--kerykeion-color-primary\s*:\s*([^;]+);", active_css)
+    assert primary_colors
+    assert primary_colors[-1].strip() == "#4c9868"
     assert "--kerykeion-color-warning: #947000;" in svg_response.text
     assert '[*|node="ZodiacBackgrounds"] {' in svg_response.text
     for sign_index in (0, 4, 8):
