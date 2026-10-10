@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Prevents Python from writing .pyc files and enables unbuffered logging
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -7,7 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 	CHART_OUTPUT_DIR=/tmp/astral-kerykeion/output \
 	HOME=/tmp \
 	XDG_CACHE_HOME=/tmp \
-	XDG_CONFIG_HOME=/tmp
+	XDG_CONFIG_HOME=/tmp \
+	LIBEPHEMERIS_DATA_DIR=/opt/libephemeris \
+	LIBEPHEMERIS_PRECISION=medium
 
 WORKDIR /app
 
@@ -22,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python dependencies
 COPY app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN python -c 'from libephemeris.download import download_leb2_for_tier; paths = download_leb2_for_tier("medium", groups=["core", "asteroids"], show_progress=False); assert len(paths) == 2'
 
 # Copy application code
 COPY app /app

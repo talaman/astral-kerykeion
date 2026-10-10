@@ -6,8 +6,7 @@ import shutil
 import uuid
 from pathlib import Path
 
-from kerykeion import AstrologicalSubjectFactory
-from kerykeion.charts.chart_drawer import ChartDrawer
+from kerykeion import AstrologicalSubjectFactory, ChartDrawer
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +69,7 @@ def generate_svg(chart_data, prefix: str = "chart", chart_language: str = "ES") 
     os.makedirs(temp_dir, exist_ok=True)
 
     try:
-        chart = ChartDrawer(chart_data=chart_data, chart_language=chart_language)
+        chart = ChartDrawer(chart_data=chart_data, chart_language=chart_language, style="modern")
         filename = f"{prefix}_{uuid.uuid4().hex}"
         chart.save_svg(output_path=Path(temp_dir), filename=filename)
 

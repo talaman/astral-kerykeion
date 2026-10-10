@@ -58,7 +58,7 @@ def test_synastry_aspects_calculation():
         lng=lng2, lat=lat2, tz_str=tz_str2, online=False
     )
 
-    aspects_data = AspectsFactory.synastry_aspects(subject1, subject2)
+    aspects_data = AspectsFactory.dual_chart_aspects(subject1, subject2)
     assert len(aspects_data.aspects) > 0
     assert hasattr(aspects_data.aspects[0], "model_dump")
 
@@ -96,7 +96,7 @@ def test_transit_aspects_calculation():
         lng=t_lng, lat=t_lat, tz_str=t_tz_str, online=False
     )
 
-    aspects_data = AspectsFactory.synastry_aspects(natal_subject, transit_subject)
+    aspects_data = AspectsFactory.dual_chart_aspects(natal_subject, transit_subject)
     assert hasattr(aspects_data, "aspects")
     assert len(aspects_data.aspects) > 0
     assert hasattr(aspects_data.aspects[0], "model_dump")

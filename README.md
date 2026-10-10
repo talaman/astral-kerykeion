@@ -29,14 +29,16 @@ OpenAPI docs are available at `/docs` when the server is running. You can disabl
 
 ### Option A — Local (Windows)
 
-Prereqs: [uv](https://docs.astral.sh/uv/) installed.
+Prereqs: [uv](https://docs.astral.sh/uv/) installed and Python 3.12 or newer.
 
 ```bat
 cd app
-uv venv
+uv venv --python 3.12
 # On Windows:
 .venv\Scripts\activate
 uv pip install -r requirements.txt
+uv run python -c "from libephemeris.download import download_leb2_for_tier; paths = download_leb2_for_tier('medium', groups=['core', 'asteroids'], show_progress=False); assert len(paths) == 2"
+set LIBEPHEMERIS_PRECISION=medium
 uvicorn main:app --reload --host 0.0.0.0 --port 8002
 ```
 
@@ -58,6 +60,47 @@ docker run --rm -p 8000:8000 astral-kerykeion
 ```
 
 Open http://localhost:8000/docs
+
+## Kerykeion 6 Migration
+
+This service uses Kerykeion 6.0.5 and its pinned libephemeris 3.2.2 backend.
+Python 3.12+ is required. Imports use the public factory API, rather than the
+module paths removed in v6. Endpoint paths and top-level JSON response keys are
+unchanged; nested subject, point, and XML-context data follow the v6 schemas.
+
+The upgrade intentionally adopts v6 calculation and rendering defaults:
+
+- 14 active points instead of 18. Descendant, Imum Coeli, the true south lunar
+  node, and Mean Lilith are no longer in the default point set.
+- Natal, synastry, and composite charts use the new aspect orbs and Sun/Moon
+  orb adjustments. Transits and returns use the predictive 3-degree orbs.
+  Quintiles are no longer included by default.
+- JSON and SVG aspects come from the same chart-data factory for each chart type.
+- SVGs use the modern renderer; the existing custom CSS is still embedded.
+- Planetary positions, lunar-phase labels, and XML context can differ from v5.
+  New provenance fields describe the ephemeris source and coverage.
+
+Docker and CI install the medium-tier core and asteroid data, covering
+1550-2650 (upper bound exclusive for core calculations). This includes the
+1815 historical examples; the bundled base tier only covers 1850-2150.
+Optional bodies can have narrower coverage. Dates outside installed coverage
+require a wider tier, not a fallback to lower-precision calculations.
+
+Docker stores the hash-verified data in `/opt/libephemeris` at build time and
+sets `LIBEPHEMERIS_DATA_DIR` and `LIBEPHEMERIS_PRECISION=medium`. Data is not
+downloaded during requests and is not hidden by the deployment's `/tmp` mount.
+For local Linux/macOS runs, provision data with the command above and use
+`export LIBEPHEMERIS_PRECISION=medium` before starting the service or tests.
+
+Ambiguous or nonexistent local times at timezone transitions require an explicit
+offset choice in v6. The current HTTP API does not expose `is_dst`; such birth
+times need a separate API extension rather than an implicit guess.
+
+Review the AGPL-3.0 obligations of both Kerykeion and libephemeris for deployment,
+particularly network use in a closed-source service.
+
+Upstream references: [v6 migration guide](https://www.kerykeion.net/python-library/docs/v6/migration)
+and [6.0.5 release notes](https://github.com/g-battaglia/kerykeion/releases/tag/v6.0.5).
 
 ## API
 

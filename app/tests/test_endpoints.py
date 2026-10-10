@@ -1,10 +1,14 @@
 import os
+import re
+from xml.etree import ElementTree
 
 os.environ["ENABLE_ADMIN_ENDPOINTS"] = "true"
 
 from fastapi.testclient import TestClient
+import main as chart_api
 from main import app
 import pytest
+from kerykeion.settings.config_constants import DEFAULT_ACTIVE_ASPECTS, PREDICTIVE_ACTIVE_ASPECTS
 
 @pytest.fixture(scope="module")
 def client():
@@ -285,6 +289,86 @@ def test_cache_details_hidden_by_default(client):
     data = res.json()
     assert "cached_keys" not in data
     assert "access_order" not in data
+
+
+@pytest.mark.parametrize("chart_type", [
+    "birth", "synastry", "transit", "solar-return", "lunar-return", "composite",
+])
+def test_v6_json_and_svg_use_same_aspects(client, monkeypatch, chart_type):
+    natal_params = {
+        "name": "Ada Lovelace", "year": 1815, "month": 12, "day": 10,
+        "hour": 6, "minute": 0, "city": "London", "nation": "UK",
+        "lng": -0.1278, "lat": 51.5074, "tz_str": "Europe/London",
+    }
+    partner_params = {
+        **natal_params, "name": "Partner", "year": 1995, "month": 2, "day": 14,
+    }
+    params = natal_params.copy()
+    if chart_type in {"synastry", "composite"}:
+        params = {f"{key}1": value for key, value in natal_params.items()}
+        params.update({f"{key}2": value for key, value in partner_params.items()})
+    elif chart_type == "transit":
+        params.update({
+            f"t_{key}": value for key, value in partner_params.items() if key != "name"
+        })
+    elif chart_type in {"solar-return", "lunar-return"}:
+        params["return_year"] = 2024
+        if chart_type == "lunar-return":
+            params.update(return_month=1, return_day=1)
+
+    client.delete("/cache/clear")
+    json_response = client.get(f"/gen/{chart_type}", params=params)
+    assert json_response.status_code == 200
+
+    rendered_charts = []
+    original_generate_svg = chart_api.generate_svg
+
+    def capture_chart(chart_data, **kwargs):
+        rendered_charts.append(chart_data)
+        return original_generate_svg(chart_data, **kwargs)
+
+    monkeypatch.setattr(chart_api, "generate_svg", capture_chart)
+    svg_response = client.get(f"/gen/{chart_type}", params={**params, "svg": True})
+    assert svg_response.status_code == 200
+    svg_root = ElementTree.fromstring(svg_response.text)
+    assert svg_root.tag == "{http://www.w3.org/2000/svg}svg"
+    svg_attributes = " ".join(
+        value for element in svg_root.iter() for value in element.attrib.values()
+    )
+    for sign_index in range(12):
+        assert f"var(--kerykeion-modern-zodiac-bg-{sign_index})" in svg_attributes
+        assert (
+            f"--kerykeion-modern-zodiac-bg-{sign_index}: "
+            f"var(--kerykeion-chart-color-zodiac-bg-{sign_index});"
+        ) in svg_response.text
+    assert "--kerykeion-modern-zodiac-bg-opacity: 1;" in svg_response.text
+    svg_css = "\n".join(
+        element.text or "" for element in svg_root.iter("{http://www.w3.org/2000/svg}style")
+    )
+    active_css = re.sub(r"/\*.*?\*/", "", svg_css, flags=re.DOTALL)
+    primary_colors = re.findall(r"--kerykeion-color-primary\s*:\s*([^;]+);", active_css)
+    assert primary_colors
+    assert primary_colors[-1].strip() == "#4c9868"
+    assert "--kerykeion-color-warning: #947000;" in svg_response.text
+    assert '[*|node="ZodiacBackgrounds"] {' in svg_response.text
+    for sign_index in (0, 4, 8):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #7c190d;" in svg_response.text
+    for sign_index in (3, 7, 11):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #c9edff;" in svg_response.text
+    for sign_index in (2, 6, 10):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #185c34;" in svg_response.text
+    for sign_index in (1, 5, 9):
+        assert f"--kerykeion-chart-color-zodiac-icon-{sign_index}: #ffe08a;" in svg_response.text
+    assert len(rendered_charts) == 1
+    chart_data = rendered_charts[0]
+    assert json_response.json()["aspects"] == [aspect.model_dump() for aspect in chart_data.aspects]
+    expected_aspects = (
+        PREDICTIVE_ACTIVE_ASPECTS
+        if chart_type in {"transit", "solar-return", "lunar-return"}
+        else DEFAULT_ACTIVE_ASPECTS
+    )
+    assert chart_data.active_aspects == expected_aspects
+    assert len(chart_data.active_points) == 14
 
 
 def test_cache_endpoints_disabled_when_admin_is_off(client, monkeypatch):
