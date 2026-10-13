@@ -22,8 +22,18 @@ OpenAPI docs are available at `/docs` when the server is running. You can disabl
 - CORS origins are configurable by environment variable
 - In-memory cache with configurable max items and max size (MB)
 - Simple CSS theming for charts (see app/themes/astral.css)
+- Self-contained AstralGuru SVG logo stamp in every chart's bottom-right corner
 - Dockerized runtime (port 8000 inside the container)
 - Generic Kubernetes deployment and service examples included
+
+The logo stamp uses `app/assets/astralguru-logo.svg`, copied from the frontend's
+borderless full-color logo. Its box is 18% of the chart's shorter viewBox
+dimension for birth and composite charts, and 34% for synastry, transit,
+solar-return, and lunar-return charts. The right inset is 2% for birth and
+composite and 8% for the wider charts. A 6% bottom inset aligns the stamp with
+the lower chart elements. It is fully opaque and preserves the logo's aspect ratio
+and embeds the asset as a data URI, so downloaded charts need no external files.
+The in-memory chart cache clears on service restart.
 
 ## Quickstart
 

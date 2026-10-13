@@ -1,10 +1,12 @@
 """Reusable helpers for chart generation and subject creation."""
 
+import base64
 import logging
 import os
 import shutil
 import uuid
 from pathlib import Path
+from xml.etree import ElementTree
 
 from kerykeion import AstrologicalSubjectFactory, ChartDrawer
 
@@ -12,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 BASE_OUTPUT_DIR = os.getenv("CHART_OUTPUT_DIR", "/tmp/astral-kerykeion/output")
 CSS_PATH = "./themes/astral.css"
+LOGO_PATH = Path(__file__).resolve().parent / "assets" / "astralguru-logo.svg"
+SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+
+ElementTree.register_namespace("", SVG_NAMESPACE)
+ElementTree.register_namespace("xlink", "http://www.w3.org/1999/xlink")
 
 
 def create_subject(
@@ -59,8 +66,33 @@ def embed_css_in_svg(svg_text: str, css_path: str = CSS_PATH) -> str:
     return svg_text
 
 
+def embed_logo_in_svg(svg_text: str, chart_type: str = "chart") -> str:
+    """Embed a full-color logo stamp aligned with the chart's lower content."""
+    root = ElementTree.fromstring(svg_text)
+    origin_x, origin_y, width, height = map(float, root.attrib["viewBox"].split())
+    short_side = min(width, height)
+    wide_chart = chart_type in {"synastry", "transit", "solar_return", "lunar_return"}
+    size_ratio = 0.34 if wide_chart else 0.18
+    size = short_side * size_ratio
+    margin = short_side * (0.08 if wide_chart else 0.02)
+    bottom_margin = short_side * 0.06
+    logo_data = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+    ElementTree.SubElement(root, f"{{{SVG_NAMESPACE}}}image", {
+        "id": "astralguru-logo-stamp",
+        "x": f"{origin_x + width - size - margin:g}",
+        "y": f"{origin_y + height - size - bottom_margin:g}",
+        "width": f"{size:g}",
+        "height": f"{size:g}",
+        "preserveAspectRatio": "xMidYMid meet",
+        "pointer-events": "none",
+        "href": f"data:image/svg+xml;base64,{logo_data}",
+        "{http://www.w3.org/1999/xlink}href": f"data:image/svg+xml;base64,{logo_data}",
+    })
+    return ElementTree.tostring(root, encoding="unicode")
+
+
 def generate_svg(chart_data, prefix: str = "chart", chart_language: str = "ES") -> str:
-    """Draw a chart to SVG, embed CSS, and return the SVG string.
+    """Draw a chart to SVG, embed CSS and branding, and return the SVG string.
 
     Handles temp-directory creation and cleanup internally.
     """
@@ -80,6 +112,6 @@ def generate_svg(chart_data, prefix: str = "chart", chart_language: str = "ES") 
         with open(svg_path, "r", encoding="utf-8") as f:
             svg_text = f.read()
 
-        return embed_css_in_svg(svg_text)
+        return embed_logo_in_svg(embed_css_in_svg(svg_text), chart_type=prefix)
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
