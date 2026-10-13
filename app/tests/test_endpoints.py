@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 from xml.etree import ElementTree
@@ -5,6 +6,7 @@ from xml.etree import ElementTree
 os.environ["ENABLE_ADMIN_ENDPOINTS"] = "true"
 
 from fastapi.testclient import TestClient
+from chart_helpers import LOGO_PATH, embed_logo_in_svg
 import main as chart_api
 from main import app
 import pytest
@@ -332,6 +334,25 @@ def test_v6_json_and_svg_use_same_aspects(client, monkeypatch, chart_type):
     assert svg_response.status_code == 200
     svg_root = ElementTree.fromstring(svg_response.text)
     assert svg_root.tag == "{http://www.w3.org/2000/svg}svg"
+    watermark = svg_root.find("{http://www.w3.org/2000/svg}image[@id='astralguru-logo-stamp']")
+    assert watermark is not None
+    origin_x, origin_y, width, height = map(float, svg_root.attrib["viewBox"].split())
+    wide_chart = chart_type not in {"birth", "composite"}
+    size_ratio = 0.34 if wide_chart else 0.18
+    size = min(width, height) * size_ratio
+    margin = min(width, height) * (0.08 if wide_chart else 0.02)
+    bottom_margin = min(width, height) * 0.06
+    assert float(watermark.attrib["width"]) == pytest.approx(size)
+    assert float(watermark.attrib["height"]) == pytest.approx(size)
+    assert float(watermark.attrib["x"]) == pytest.approx(origin_x + width - size - margin)
+    assert float(watermark.attrib["y"]) == pytest.approx(origin_y + height - size - bottom_margin)
+    assert "opacity" not in watermark.attrib
+    assert watermark.attrib["preserveAspectRatio"] == "xMidYMid meet"
+    logo_uri = watermark.attrib["href"]
+    assert logo_uri.startswith("data:image/svg+xml;base64,")
+    assert base64.b64decode(logo_uri.split(",", 1)[1]) == LOGO_PATH.read_bytes()
+    cached_svg = client.get(f"/gen/{chart_type}", params={**params, "svg": True})
+    assert cached_svg.text == svg_response.text
     svg_attributes = " ".join(
         value for element in svg_root.iter() for value in element.attrib.values()
     )
@@ -369,6 +390,22 @@ def test_v6_json_and_svg_use_same_aspects(client, monkeypatch, chart_type):
     )
     assert chart_data.active_aspects == expected_aspects
     assert len(chart_data.active_points) == 14
+
+
+@pytest.mark.parametrize("chart_type, size, right_margin", [
+    ("chart", 144, 16), ("birth", 144, 16), ("composite", 144, 16),
+    ("synastry", 272, 64), ("transit", 272, 64),
+    ("solar_return", 272, 64), ("lunar_return", 272, 64),
+])
+def test_logo_stamp_respects_viewbox_origin(chart_type, size, right_margin):
+    svg_text = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 1200 800" />'
+    root = ElementTree.fromstring(embed_logo_in_svg(svg_text, chart_type=chart_type))
+    watermark = root.find("{http://www.w3.org/2000/svg}image")
+    assert watermark is not None
+    assert float(watermark.attrib["x"]) == 1210 - size - right_margin
+    assert float(watermark.attrib["y"]) == 820 - size - 48
+    assert float(watermark.attrib["width"]) == size
+    assert float(watermark.attrib["height"]) == size
 
 
 def test_cache_endpoints_disabled_when_admin_is_off(client, monkeypatch):

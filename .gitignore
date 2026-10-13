@@ -10,5 +10,6 @@ app/temp_transit/
 *.sqlite
 *.sqlite3
 *.svg
+!app/assets/astralguru-logo.svg
 app/cache/kerykeion_geonames_cache.sqlite
 app/test.svg
