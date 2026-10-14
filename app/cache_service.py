@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class CacheService:
     """In-memory LRU cache with size management."""
 
-    def __init__(self, max_items: int = 700, max_size_mb: float = 100):
+    def __init__(self, max_items: int = 700, max_size_mb: float = 10):
         self.max_items = max_items
         self.max_size_mb = max_size_mb
         self._store: dict[str, dict] = {}
