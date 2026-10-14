@@ -170,7 +170,9 @@ The service maintains an in-memory cache with LRU-style eviction. Cache administ
 Defaults:
 
 - Max items: 700
-- Max size: 100 MB
+- Max size: 10 MiB per worker (up to 20 MiB per pod with the default two Gunicorn workers)
+
+The size limit counts cached response strings, not total process memory or cache metadata.
 
 Endpoints:
 
@@ -181,7 +183,7 @@ Endpoints:
 Examples:
 
 ```
-PUT /cache/config?max_items=500&max_size_mb=50
+PUT /cache/config?max_items=500&max_size_mb=10
 GET /cache/info
 DELETE /cache/clear
 ```
